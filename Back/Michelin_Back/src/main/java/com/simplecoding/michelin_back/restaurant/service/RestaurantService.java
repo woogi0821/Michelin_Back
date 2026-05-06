@@ -42,13 +42,11 @@ public class RestaurantService {
 
     //    등급에 따른 마커 색상 결정 로직 (고도화 포인트)
     private String determineMarkerColor(String grade) {
-        if (grade == null) return "gray";
-
-        return switch (grade) { // 자바 14+ 최신 switch 문법
-            case "3스타", "2스타", "1스타" -> "red";    // 스타급은 빨간색
-            case "빕 구르망" -> "green";               // 가성비는 초록색
-            case "선정 레스토랑" -> "blue";            // 일반 선정은 파란색
-            default -> "gray";
-        };
+        if (grade.contains("3스타")) return "red";
+        if (grade.contains("2스타")) return "orange";
+        if (grade.contains("1스타")) return "yellow";
+        if (grade.contains("빕 구르망")) return "green";
+        return "blue"; // 기본색
     }
 }
+

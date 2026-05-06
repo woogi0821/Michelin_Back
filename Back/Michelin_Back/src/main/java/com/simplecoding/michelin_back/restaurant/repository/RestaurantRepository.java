@@ -12,18 +12,14 @@ import java.util.List;
 public interface RestaurantRepository extends JpaRepository<Restaurant, Long> {
     // ✅ [핵심] 충전소 프로젝트의 반경 검색 쿼리 이식
     // 1.5km 이내의 미쉐린 식당을 위도/경도 기반으로 검색합니다.
-    @Query(value = "SELECT * FROM ( " +
-            "    SELECT r.*, " +
-            "    (6371 * acos(cos(radians(:lat)) * cos(radians(r.lat)) * cos(radians(r.lng) - radians(:lng)) + " +
-            "    sin(radians(:lat)) * sin(radians(r.lat)))) AS distance " +
-            "    FROM RESTAURANTS r " +
-            ") " +
-            "WHERE distance <= :radius " +
-            "ORDER BY distance", nativeQuery = true)
-    List<Restaurant> findRestaurantsWithinRadius(
-            @Param("lat") Double lat,
-            @Param("lng") Double lng,
-            @Param("radius") Double radius);
+    @Query(value = "SELECT * FROM (" +
+            "  SELECT r.*, " +
+            "  (6371 * acos(cos(?1 * 3.1415926535 / 180) * cos(r.lat * 3.1415926535 / 180) * " +
+            "  cos((r.lng * 3.1415926535 / 180) - (?2 * 3.1415926535 / 180)) + " +
+            "  sin(?1 * 3.1415926535 / 180) * sin(r.lat * 3.1415926535 / 180))) AS distance " +
+            "  FROM RESTAURANTS r" +
+            ") WHERE distance <= ?3 ORDER BY distance", nativeQuery = true)
+    List<Restaurant> findRestaurantsWithinRadius(Double lat, Double lng, Double radius);
 
     // ✅ [추가] 등급별 필터링을 위한 쿼리 (필요 시 사용)
     List<Restaurant> findByGrade(String grade);

@@ -17,7 +17,7 @@ public class Restaurant {
     private Long id;
 
     @Column(nullable = false)
-    private String resNm;      // 레스토랑명
+    private String restaurantName;      // 레스토랑명
 
     private String city;       // 도시 (서울/부산)
     private String district;   // 지역구 (강남구/해운대구 등)
@@ -32,8 +32,8 @@ public class Restaurant {
     @Column(nullable = false)
     private Double lng;        // 경도
 
-    private String category;   // 업종 (한식, 양식 등 - 추후 확장용)
-
+//    private String category;   // 업종 (한식, 양식 등 - 추후 확장용)
+    @Column(name = "UPDATED_AT")
     private LocalDateTime updatedAt; // 데이터 업데이트 일시
 
     @PrePersist
