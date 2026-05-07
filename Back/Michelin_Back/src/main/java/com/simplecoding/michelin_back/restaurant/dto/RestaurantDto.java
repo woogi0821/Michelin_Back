@@ -18,4 +18,5 @@ public class RestaurantDto {
     private Double lat;
     private Double lng;
     private Double distance;   // 내 위치로부터의 거리 (KM 단위)
+    private String phone;
 }

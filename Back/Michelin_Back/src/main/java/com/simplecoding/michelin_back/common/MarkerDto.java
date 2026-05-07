@@ -13,7 +13,7 @@ public class MarkerDto {
     private Double lat;        // 위도
     private Double lng;        // 경도
     private String grade;      // 미쉐린 등급 (3스타, 빕 구르망 등)
-
+    private String phone;
     // 마커 아이콘 색상을 결정할 필드 (프론트엔드 전달용)
     private String markerColor;
 }
