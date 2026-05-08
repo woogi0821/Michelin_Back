@@ -1,12 +1,14 @@
 package com.simplecoding.michelin_back.restaurant.service;
 
 import com.simplecoding.michelin_back.common.CommonException;
+import com.simplecoding.michelin_back.common.MarkerDto;
 import com.simplecoding.michelin_back.restaurant.dto.RestaurantRequestDto;
 import com.simplecoding.michelin_back.restaurant.dto.RestaurantResponseDto;
 import com.simplecoding.michelin_back.restaurant.dto.RestaurantSearchDto;
 import com.simplecoding.michelin_back.restaurant.entity.Restaurant;
 import com.simplecoding.michelin_back.restaurant.repository.RestaurantRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -19,6 +21,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
 import java.util.stream.Collectors;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
@@ -123,5 +126,35 @@ public class RestaurantService {
                 .stream()
                 .map(RestaurantResponseDto::new)
                 .collect(Collectors.toList());
+    }
+
+    // P4 연동 - 지도 마커용 음식점 조회 (반경 3.5km)
+    public List<MarkerDto> getRestaurantMarkers(Double lat, Double lng) {
+        Double radius = 3.5;
+        List<Restaurant> restaurants =
+                restaurantRepository.findRestaurantsWithinRadius(lat, lng, radius);
+        log.info("[지도 마커] 중심 좌표 ({}, {}) 기준 {}건 조회 완료",
+                lat, lng, restaurants.size());
+        return restaurants.stream()
+                .map(res -> MarkerDto.builder()
+                        .id(res.getId())
+                        .restaurantName(res.getRestaurantName())
+                        .lat(res.getLat())
+                        .lng(res.getLng())
+                        .grade(res.getGrade())
+                        .phone(res.getPhone())
+                        .address(res.getAddress())
+                        .markerColor(determineMarkerColor(res.getGrade()))
+                        .build())
+                .collect(Collectors.toList());
+    }
+
+    // 등급별 마커 색상 결정
+    private String determineMarkerColor(String grade) {
+        if (grade.contains("3스타")) return "red";
+        if (grade.contains("2스타")) return "orange";
+        if (grade.contains("1스타")) return "yellow";
+        if (grade.contains("빕 구르망")) return "green";
+        return "blue";
     }
 }

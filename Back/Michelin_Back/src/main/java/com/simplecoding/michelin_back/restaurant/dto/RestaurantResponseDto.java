@@ -27,6 +27,7 @@ public class RestaurantResponseDto {
     private LocalDateTime updatedAt;
     private String mainImageUrl;
     private List<String> imageUrls;
+    private Double distance;  // P4 연동 - 내 위치로부터의 거리 (km)
 
     public RestaurantResponseDto(Restaurant restaurant) {
         this.id = restaurant.getId();
@@ -44,6 +45,7 @@ public class RestaurantResponseDto {
         this.viewCount = restaurant.getViewCount();
         this.createdAt = restaurant.getCreatedAt();
         this.updatedAt = restaurant.getUpdatedAt();
+        this.distance = null;  // 거리 계산 시 별도 세팅
 
         // 대표 이미지
         this.mainImageUrl = restaurant.getImages().stream()

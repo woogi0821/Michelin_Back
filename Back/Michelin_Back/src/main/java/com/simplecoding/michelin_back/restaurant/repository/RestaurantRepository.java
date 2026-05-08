@@ -30,4 +30,14 @@ public interface RestaurantRepository extends JpaRepository<Restaurant, Long>,
 
     // 그린스타 조회
     Page<Restaurant> findByIsGreenStar(String isGreenStar, Pageable pageable);
+
+    // P4 연동 - 반경 내 음식점 조회 (위도/경도 기반)
+    @Query(value = "SELECT * FROM (" +
+            "  SELECT r.*, " +
+            "  (6371 * acos(cos(?1 * 3.1415926535 / 180) * cos(r.lat * 3.1415926535 / 180) * " +
+            "  cos((r.lng * 3.1415926535 / 180) - (?2 * 3.1415926535 / 180)) + " +
+            "  sin(?1 * 3.1415926535 / 180) * sin(r.lat * 3.1415926535 / 180))) AS distance " +
+            "  FROM RESTAURANTS r" +
+            ") WHERE distance <= ?3 ORDER BY distance", nativeQuery = true)
+    List<Restaurant> findRestaurantsWithinRadius(Double lat, Double lng, Double radius);
 }

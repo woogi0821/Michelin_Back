@@ -1,17 +1,20 @@
 package com.simplecoding.michelin_back.restaurant.controller;
 
 import com.simplecoding.michelin_back.common.ApiResponse;
+import com.simplecoding.michelin_back.common.MarkerDto;
 import com.simplecoding.michelin_back.restaurant.dto.RestaurantRequestDto;
 import com.simplecoding.michelin_back.restaurant.dto.RestaurantResponseDto;
 import com.simplecoding.michelin_back.restaurant.dto.RestaurantSearchDto;
 import com.simplecoding.michelin_back.restaurant.service.RestaurantService;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
+@Slf4j
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api/restaurants")
@@ -67,5 +70,23 @@ public class RestaurantController {
             @RequestParam String keyword) {
         return ResponseEntity.ok(
                 ApiResponse.success(restaurantService.getAutocomplete(keyword)));
+    }
+
+    // P4 연동 - 지도 마커 조회
+    @GetMapping("/markers")
+    public ResponseEntity<List<MarkerDto>> getMarkers(
+            @RequestParam(name = "lat") Double lat,
+            @RequestParam(name = "lng") Double lng) {
+        log.info("[API 요청] 마커 조회 - 위도: {}, 경도: {}", lat, lng);
+        if (lat == null || lng == null || lat == 0.0 || lng == 0.0) {
+            return ResponseEntity.ok(List.of());
+        }
+        try {
+            List<MarkerDto> markers = restaurantService.getRestaurantMarkers(lat, lng);
+            return ResponseEntity.ok(markers);
+        } catch (Exception e) {
+            log.error("마커 조회 중 서버 에러 발생: {}", e.getMessage());
+            return ResponseEntity.internalServerError().build();
+        }
     }
 }
