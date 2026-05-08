@@ -21,7 +21,8 @@ public class Restaurant {
 
     private String city;       // 도시 (서울/부산)
     private String district;   // 지역구 (강남구/해운대구 등)
-    private String address;       // 도로명/지번 상세 주소
+    private String address; // 도로명/지번 상세 주소
+    private String phone;
 
     @Column(nullable = false)
     private String grade;      // 미쉐린 등급 (3스타, 빕 구르망 등)

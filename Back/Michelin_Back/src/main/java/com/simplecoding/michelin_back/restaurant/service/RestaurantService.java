@@ -11,6 +11,8 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import static com.simplecoding.michelin_back.restaurant.entity.QRestaurant.restaurant;
+
 @Slf4j //로그(Log)를 남기기 위한 도구
 @Service
 @RequiredArgsConstructor
@@ -35,6 +37,8 @@ public class RestaurantService {
                         .lat(res.getLat())
                         .lng(res.getLng())
                         .grade(res.getGrade())
+                        .phone(res.getPhone())
+                        .address(res.getAddress())
                         .markerColor(determineMarkerColor(res.getGrade())) // 5
                         .build())
                 .collect(Collectors.toList());
