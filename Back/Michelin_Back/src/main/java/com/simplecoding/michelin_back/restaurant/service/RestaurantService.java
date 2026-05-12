@@ -31,6 +31,17 @@ public class RestaurantService {
 
     // 음식점 목록 조회 (필터 + 페이지네이션)
     public Page<RestaurantResponseDto> getList(RestaurantSearchDto searchDto) {
+
+        // ✅ 디버그 로그 추가
+        log.info("[목록 조회] keyword={}, grade={}, city={}, district={}, isGreenStar={}, page={}, size={}",
+                searchDto.getKeyword(),
+                searchDto.getGrade(),
+                searchDto.getCity(),
+                searchDto.getDistrict(),
+                searchDto.getIsGreenStar(),
+                searchDto.getPage(),
+                searchDto.getSize());
+
         Pageable pageable = PageRequest.of(
                 searchDto.getPage(),
                 searchDto.getSize(),
@@ -56,12 +67,17 @@ public class RestaurantService {
                     cb.equal(root.get("isGreenStar"), searchDto.getIsGreenStar()));
         }
         if (searchDto.getKeyword() != null && !searchDto.getKeyword().isEmpty()) {
+            log.info("[키워드 필터 적용] keyword={}", searchDto.getKeyword());
             spec = spec.and((root, query, cb) ->
                     cb.like(root.get("restaurantName"), "%" + searchDto.getKeyword() + "%"));
         }
 
-        return restaurantRepository.findAll(spec, pageable)
+        Page<RestaurantResponseDto> result = restaurantRepository.findAll(spec, pageable)
                 .map(RestaurantResponseDto::new);
+
+        log.info("[목록 조회 완료] 총 {}건", result.getTotalElements());
+
+        return result;
     }
 
     // 음식점 상세 조회 (조회수 +1)
