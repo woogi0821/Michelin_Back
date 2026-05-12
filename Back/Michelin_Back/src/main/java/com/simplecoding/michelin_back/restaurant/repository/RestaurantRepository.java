@@ -23,4 +23,7 @@ public interface RestaurantRepository extends JpaRepository<Restaurant, Long> {
 
     // ✅ [추가] 등급별 필터링을 위한 쿼리 (필요 시 사용)
     List<Restaurant> findByGrade(String grade);
+
+    // 키워드가 포함된 식당 이름을 찾는 메서드 (대소문자 무시)
+    List<Restaurant> findByRestaurantNameContainingIgnoreCase(String name);
 }

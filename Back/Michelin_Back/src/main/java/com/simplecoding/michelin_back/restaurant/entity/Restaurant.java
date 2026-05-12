@@ -4,6 +4,8 @@ import jakarta.persistence.*;
 import lombok.*;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Table(name = "RESTAURANTS")
@@ -33,9 +35,18 @@ public class Restaurant {
     @Column(nullable = false)
     private Double lng;        // 경도
 
+    @Column(name = "CATEGORY") // DB 컬럼과 연결
+    private String category;
+    public String getCategory() {
+        return category;
+    }
+
 //    private String category;   // 업종 (한식, 양식 등 - 추후 확장용)
     @Column(name = "UPDATED_AT")
     private LocalDateTime updatedAt; // 데이터 업데이트 일시
+
+    @OneToMany(mappedBy = "restaurant", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    private List<RestaurantImage> images = new ArrayList<>();
 
     @PrePersist
     @PreUpdate

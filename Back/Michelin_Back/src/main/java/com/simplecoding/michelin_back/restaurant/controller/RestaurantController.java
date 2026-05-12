@@ -39,4 +39,9 @@ public class RestaurantController {
             return ResponseEntity.internalServerError().build();
         }
     }
+    @GetMapping("/search")
+    public List<MarkerDto> search(@RequestParam("name") String name) {
+        // 위에서 만든 서비스 메서드를 호출하거나 레포지토리를 직접 호출합니다.
+        return restaurantService.searchRestaurants(name);
+    }
 }

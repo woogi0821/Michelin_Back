@@ -17,4 +17,6 @@ public class MarkerDto {
     private String address;
     // 마커 아이콘 색상을 결정할 필드 (프론트엔드 전달용)
     private String markerColor;
+    private String category;
+    private String imageUrl;
 }
