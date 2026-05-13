@@ -1,6 +1,6 @@
-package com.simplecoding.chargerreservation.common.jwt;
+package com.simplecoding.michelin_back.common.jwt;
 
-import com.simplecoding.chargerreservation.member.entity.Member;
+import com.simplecoding.michelin_back.member.entity.Member;
 import io.jsonwebtoken.*;
 import io.jsonwebtoken.security.Keys;
 import lombok.extern.slf4j.Slf4j;

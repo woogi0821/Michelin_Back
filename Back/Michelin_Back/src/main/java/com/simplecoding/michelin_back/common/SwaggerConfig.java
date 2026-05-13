@@ -1,4 +1,4 @@
-package com.simplecoding.chargerreservation.common;
+package com.simplecoding.michelin_back.common;
 
 import io.swagger.v3.oas.models.Components;
 import io.swagger.v3.oas.models.OpenAPI;
@@ -29,8 +29,8 @@ public class SwaggerConfig {
 
         return new OpenAPI()
                 .info(new Info()
-                        .title("충전소 예약 API")
-                        .description("전기차 충전소 예약 관리 시스템")
+                        .title("미슐랭 맛집 API")
+                        .description("미슐랭 맛집 정보 및 관리 시스템")
                         .version("v1.0"))
                 .components(new Components()
                         .addSecuritySchemes("bearerAuth", securityScheme))
