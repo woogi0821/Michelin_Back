@@ -140,4 +140,94 @@ public class NotificationService {
         LocalDateTime unreadCutoff = LocalDateTime.now().minusDays(14); // 안 읽은 알림 14일
         notificationRepository.deleteOldNotifications(readCutoff, unreadCutoff);
     }
+
+// --- [P5 담당자] NotiType 기반 도메인별 전용 메서드 ---
+
+    /**
+     * [1. 좋아요 알림]
+     */
+    @Transactional
+    public void sendLikeAlert(Member receiver, Member sender, Long boardId) {
+        if (receiver.getMemberId().equals(sender.getMemberId())) return;
+
+        this.createNotification(
+                receiver.getMemberId(),
+                sender.getMemberId(),
+                boardId,
+                "❤️ 좋아요 알림",
+                String.format("%s님이 내 게시글을 좋아합니다.", sender.getName()),
+                NotiType.LIKE,
+                "/review/detail/" + boardId
+        );
+    }
+
+    /**
+     * [2. 북마크 알림]
+     */
+    @Transactional
+    public void sendBookmarkAlert(Member receiver, Member sender, Long boardId) {
+        if (receiver.getMemberId().equals(sender.getMemberId())) return;
+
+        this.createNotification(
+                receiver.getMemberId(),
+                sender.getMemberId(),
+                boardId,
+                "🔖 북마크 알림",
+                String.format("%s님이 내 게시글을 북마크했습니다.", sender.getName()),
+                NotiType.BOOKMARK,
+                "/review/detail/" + boardId
+        );
+    }
+
+    /**
+     * [3. 원댓글 알림] - 게시글 작성자에게 전송
+     */
+    @Transactional
+    public void sendCommentAlert(Member receiver, Member sender, Long boardId) {
+        if (receiver.getMemberId().equals(sender.getMemberId())) return;
+
+        this.createNotification(
+                receiver.getMemberId(),
+                sender.getMemberId(),
+                boardId,
+                "💬 새로운 댓글",
+                String.format("%s님이 내 게시글에 댓글을 남겼습니다.", sender.getName()),
+                NotiType.COMMENT,
+                "/review/detail/" + boardId
+        );
+    }
+
+    /**
+     * [4. 답글 알림] - 원댓글 작성자에게 전송
+     */
+    @Transactional
+    public void sendReplyAlert(Member receiver, Member sender, Long boardId) {
+        if (receiver.getMemberId().equals(sender.getMemberId())) return;
+
+        this.createNotification(
+                receiver.getMemberId(),
+                sender.getMemberId(),
+                boardId,
+                "↪️ 새로운 답글",
+                String.format("%s님이 내 댓글에 답글을 남겼습니다.", sender.getName()),
+                NotiType.REPLY,
+                "/review/detail/" + boardId
+        );
+    }
+
+    /**
+     * [5. 시스템 공지 알림] - 특정 유저에게 시스템 메시지 전송
+     */
+    @Transactional
+    public void sendSystemAlert(Member receiver, String title, String content, String url) {
+        this.createNotification(
+                receiver.getMemberId(),
+                null, // 시스템은 발신자가 없음
+                null,
+                "📢 " + title,
+                content,
+                NotiType.SYSTEM,
+                url != null ? url : "/home"
+        );
+    }
 }
