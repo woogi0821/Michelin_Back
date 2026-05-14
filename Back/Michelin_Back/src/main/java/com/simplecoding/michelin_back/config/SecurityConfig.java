@@ -22,7 +22,9 @@ public class SecurityConfig {
                 .csrf(csrf -> csrf.disable()) // 테스트를 위해 CSRF 비활성화
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/api/restaurants/**").permitAll() // 2. 맛집 API는 누구나 접근 가능
+                        .requestMatchers("/api/social/**").permitAll()
                         .anyRequest().authenticated()
+
                 );
         return http.build();
     }
