@@ -1,100 +1,56 @@
 package com.simplecoding.michelin_back.restaurant.entity;
 
-import com.simplecoding.michelin_back.common.BaseTimeEntity;
 import jakarta.persistence.*;
-import lombok.Builder;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
+import lombok.*;
 
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
 @Entity
-@Getter
-@NoArgsConstructor
 @Table(name = "RESTAURANTS")
-public class Restaurant extends BaseTimeEntity {
-
+@Getter
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
+@AllArgsConstructor
+@Builder
+public class Restaurant {
     @Id
-    @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "restaurant_seq")
-    @SequenceGenerator(name = "restaurant_seq", sequenceName = "RESTAURANTS_SEQ", allocationSize = 1)
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "RESTAURANT_NAME", nullable = false, length = 255)
-    private String restaurantName;
+    @Column(nullable = false)
+    private String restaurantName;      // 레스토랑명
 
-    @Column(name = "GRADE", nullable = false, length = 100)
-    private String grade;
-
-    @Column(name = "CITY", length = 100)
-    private String city;
-
-    @Column(name = "DISTRICT", length = 100)
-    private String district;
-
-    @Column(name = "LAT", nullable = false)
-    private Double lat;
-
-    @Column(name = "LNG", nullable = false)
-    private Double lng;
-
-    @Column(name = "IS_GREEN_STAR", length = 10)
-    private String isGreenStar;
-
-    @Column(name = "ADDRESS", length = 500)
-    private String address;
-
-    @Column(name = "KAKAO_PLACE_URL", length = 500)
-    private String kakaoPlaceUrl;
-
-    @Column(name = "KAKAO_PLACE_ID", length = 100)
-    private String kakaoPlaceId;
-
-    @Column(name = "PHONE", length = 50)
+    private String city;       // 도시 (서울/부산)
+    private String district;   // 지역구 (강남구/해운대구 등)
+    private String address; // 도로명/지번 상세 주소
     private String phone;
 
-    @Column(name = "VIEW_COUNT")
-    private Long viewCount = 0L;
+    @Column(nullable = false)
+    private String grade;      // 미쉐린 등급 (3스타, 빕 구르망 등)
 
-    @OneToMany(mappedBy = "restaurant", cascade = CascadeType.ALL, orphanRemoval = true)
+    @Column(nullable = false)
+    private Double lat;        // 위도
+
+    @Column(nullable = false)
+    private Double lng;        // 경도
+
+    @Column(name = "CATEGORY") // DB 컬럼과 연결
+    private String category;
+    public String getCategory() {
+        return category;
+    }
+
+//    private String category;   // 업종 (한식, 양식 등 - 추후 확장용)
+    @Column(name = "UPDATED_AT")
+    private LocalDateTime updatedAt; // 데이터 업데이트 일시
+
+    @OneToMany(mappedBy = "restaurant", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private List<RestaurantImage> images = new ArrayList<>();
 
-    @Builder
-    public Restaurant(String restaurantName, String grade, String city,
-                      String district, Double lat, Double lng,
-                      String isGreenStar, String address,
-                      String kakaoPlaceUrl, String kakaoPlaceId, String phone) {
-        this.restaurantName = restaurantName;
-        this.grade = grade;
-        this.city = city;
-        this.district = district;
-        this.lat = lat;
-        this.lng = lng;
-        this.isGreenStar = isGreenStar;
-        this.address = address;
-        this.kakaoPlaceUrl = kakaoPlaceUrl;
-        this.kakaoPlaceId = kakaoPlaceId;
-        this.phone = phone;
-        this.viewCount = 0L;
-    }
-
-    // 조회수 증가
-    public void increaseViewCount() {
-        this.viewCount++;
-    }
-
-    // 음식점 수정
-    public void update(String restaurantName, String grade, String city,
-                       String district, String address, String phone,
-                       String isGreenStar, String kakaoPlaceUrl, String kakaoPlaceId) {
-        this.restaurantName = restaurantName;
-        this.grade = grade;
-        this.city = city;
-        this.district = district;
-        this.address = address;
-        this.phone = phone;
-        this.isGreenStar = isGreenStar;
-        this.kakaoPlaceUrl = kakaoPlaceUrl;
-        this.kakaoPlaceId = kakaoPlaceId;
+    @PrePersist
+    @PreUpdate
+    public void onUpdate() {
+        this.updatedAt = LocalDateTime.now();
     }
 }
