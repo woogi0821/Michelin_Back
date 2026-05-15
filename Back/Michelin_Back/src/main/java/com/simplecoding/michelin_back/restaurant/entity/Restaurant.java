@@ -14,43 +14,91 @@ import java.util.List;
 @AllArgsConstructor
 @Builder
 public class Restaurant {
+
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "restaurants_seq")
+    @SequenceGenerator(name = "restaurants_seq", sequenceName = "RESTAURANTS_SEQ", allocationSize = 1)
     private Long id;
 
-    @Column(nullable = false)
-    private String restaurantName;      // 레스토랑명
+    @Column(name = "RESTAURANT_NAME", nullable = false)
+    private String restaurantName;
 
-    private String city;       // 도시 (서울/부산)
-    private String district;   // 지역구 (강남구/해운대구 등)
-    private String address; // 도로명/지번 상세 주소
+    @Column(name = "CITY")
+    private String city;
+
+    @Column(name = "DISTRICT")
+    private String district;
+
+    @Column(name = "ADDRESS")
+    private String address;
+
+    @Column(name = "PHONE")
     private String phone;
 
-    @Column(nullable = false)
-    private String grade;      // 미쉐린 등급 (3스타, 빕 구르망 등)
+    @Column(name = "GRADE", nullable = false)
+    private String grade;
 
-    @Column(nullable = false)
-    private Double lat;        // 위도
+    @Column(name = "IS_GREEN_STAR", length = 1)
+    private String isGreenStar = "N";
 
-    @Column(nullable = false)
-    private Double lng;        // 경도
+    @Column(name = "VIEW_COUNT")
+    private Integer viewCount = 0;
 
-    @Column(name = "CATEGORY") // DB 컬럼과 연결
+    @Column(name = "LAT", nullable = false)
+    private Double lat;
+
+    @Column(name = "LNG", nullable = false)
+    private Double lng;
+
+    @Column(name = "KAKAO_PLACE_URL", length = 500)
+    private String kakaoPlaceUrl;
+
+    @Column(name = "KAKAO_PLACE_ID", length = 50)
+    private String kakaoPlaceId;
+
+    @Column(name = "CATEGORY")
     private String category;
-    public String getCategory() {
-        return category;
-    }
 
-//    private String category;   // 업종 (한식, 양식 등 - 추후 확장용)
+    @Column(name = "CREATED_AT")
+    private LocalDateTime createdAt;
+
     @Column(name = "UPDATED_AT")
-    private LocalDateTime updatedAt; // 데이터 업데이트 일시
+    private LocalDateTime updatedAt;
 
     @OneToMany(mappedBy = "restaurant", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private List<RestaurantImage> images = new ArrayList<>();
 
     @PrePersist
+    public void onCreate() {
+        this.createdAt = LocalDateTime.now();
+        this.updatedAt = LocalDateTime.now();
+    }
+
     @PreUpdate
     public void onUpdate() {
         this.updatedAt = LocalDateTime.now();
+    }
+
+    // 조회수 증가
+    public void increaseViewCount() {
+        this.viewCount = (this.viewCount == null ? 0 : this.viewCount) + 1;
+    }
+
+    // 정보 수정
+    public void update(String restaurantName, String city, String district,
+                       String address, String phone, String grade,
+                       String isGreenStar, Double lat, Double lng,
+                       String kakaoPlaceUrl, String category) {
+        this.restaurantName = restaurantName;
+        this.city = city;
+        this.district = district;
+        this.address = address;
+        this.phone = phone;
+        this.grade = grade;
+        this.isGreenStar = isGreenStar;
+        this.lat = lat;
+        this.lng = lng;
+        this.kakaoPlaceUrl = kakaoPlaceUrl;
+        this.category = category;
     }
 }

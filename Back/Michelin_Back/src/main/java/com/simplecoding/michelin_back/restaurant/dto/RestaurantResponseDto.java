@@ -22,12 +22,12 @@ public class RestaurantResponseDto {
     private String kakaoPlaceUrl;
     private String kakaoPlaceId;
     private String phone;
-    private Long viewCount;
+    private Integer viewCount;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
     private String mainImageUrl;
     private List<String> imageUrls;
-    private Double distance;  // P4 연동 - 내 위치로부터의 거리 (km)
+    private Double distance;
 
     public RestaurantResponseDto(Restaurant restaurant) {
         this.id = restaurant.getId();
@@ -45,18 +45,21 @@ public class RestaurantResponseDto {
         this.viewCount = restaurant.getViewCount();
         this.createdAt = restaurant.getCreatedAt();
         this.updatedAt = restaurant.getUpdatedAt();
-        this.distance = null;  // 거리 계산 시 별도 세팅
+        this.distance = null;
 
-        // 대표 이미지
         this.mainImageUrl = restaurant.getImages().stream()
                 .filter(img -> "Y".equals(img.getIsMain()))
                 .map(img -> img.getImageUrl())
                 .findFirst()
                 .orElse(null);
 
-        // 전체 이미지 목록
         this.imageUrls = restaurant.getImages().stream()
                 .map(img -> img.getImageUrl())
                 .collect(Collectors.toList());
+    }
+
+    // 거리 세팅용 생성자
+    public void setDistance(Double distance) {
+        this.distance = distance;
     }
 }

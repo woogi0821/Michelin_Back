@@ -2,42 +2,33 @@ package com.simplecoding.michelin_back.social.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
-
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "RESTAURANT_BOOKMARK",
-        uniqueConstraints = {
-                @UniqueConstraint(columnNames = {"user_id", "restaurant_id"})
-        })
-@Getter
-@NoArgsConstructor(access = AccessLevel.PROTECTED)
-@AllArgsConstructor
+@Table(name = "RESTAURANT_BOOKMARKS")
+@Getter @Setter
+@NoArgsConstructor @AllArgsConstructor
 @Builder
 public class RestaurantBookmark {
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "BOOKMARK_SEQ")
+    @SequenceGenerator(name = "BOOKMARK_SEQ", sequenceName = "SEQ_BOOKMARK_ID", allocationSize = 1)
     private Long id;
 
-    @Column(name = "user_id", nullable = false)
-    private Long userId;
+    @Column(name = "MEMBER_ID") // [수정] USER_ID -> MEMBER_ID
+    private Long memberId;
 
-    @Column(name = "restaurant_id", nullable = false)
+    @Column(name = "RESTAURANT_ID")
     private Long restaurantId;
 
-    // 나중에 폴더별로 맛집을 분류하고 싶을 때를 대비한 필드입니다.
-    @Column(name = "folder_name")
+    @Column(name = "FOLDER_NAME")
     private String folderName;
 
-    @Column(name = "created_at")
+    @Column(name = "CREATED_AT")
     private LocalDateTime createdAt;
 
     @PrePersist
-    public void prePersist() {
+    public void onCreate() {
         this.createdAt = LocalDateTime.now();
-        // 폴더명이 지정되지 않았을 경우 기본값 설정
-        if (this.folderName == null) {
-            this.folderName = "기본 폴더";
-        }
     }
 }

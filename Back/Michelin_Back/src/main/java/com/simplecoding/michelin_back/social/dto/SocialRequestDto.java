@@ -1,11 +1,13 @@
 package com.simplecoding.michelin_back.social.dto;
 
-import lombok.Getter;
-import lombok.NoArgsConstructor;
+import lombok.*;
 
 @Getter
+@Setter
 @NoArgsConstructor
+@AllArgsConstructor
+@Builder
 public class SocialRequestDto {
-    private Long userId;
+    private Long memberId;      // [수정] userId -> memberId
     private Long restaurantId;
 }

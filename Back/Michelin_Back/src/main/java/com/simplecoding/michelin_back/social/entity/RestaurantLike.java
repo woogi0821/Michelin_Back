@@ -2,34 +2,32 @@ package com.simplecoding.michelin_back.social.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
-
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "RESTAURANT_LIKE",
-        uniqueConstraints = {
-                @UniqueConstraint(columnNames = {"user_id", "restaurant_id"})
-        })
+@Table(name = "RESTAURANT_LIKES")
 @Getter
-@NoArgsConstructor(access = AccessLevel.PROTECTED)
+@Setter
+@NoArgsConstructor
 @AllArgsConstructor
 @Builder
 public class RestaurantLike {
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "LIKE_SEQ")
+    @SequenceGenerator(name = "LIKE_SEQ", sequenceName = "SEQ_LIKE_ID", allocationSize = 1)
     private Long id;
 
-    @Column(name = "user_id", nullable = false)
-    private Long userId;
+    @Column(name = "MEMBER_ID") // [수정] 컬럼명 일치
+    private Long memberId;
 
-    @Column(name = "restaurant_id", nullable = false)
+    @Column(name = "RESTAURANT_ID")
     private Long restaurantId;
 
-    @Column(name = "created_at")
+    @Column(name = "CREATED_AT")
     private LocalDateTime createdAt;
 
     @PrePersist
-    public void prePersist() {
+    public void onCreate() {
         this.createdAt = LocalDateTime.now();
     }
 }
