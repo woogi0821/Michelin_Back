@@ -5,6 +5,7 @@ import com.simplecoding.michelin_back.restaurant.entity.Restaurant;
 import com.simplecoding.michelin_back.restaurant.entity.RestaurantImage;
 import com.simplecoding.michelin_back.restaurant.repository.RestaurantImageRepository;
 import com.simplecoding.michelin_back.restaurant.repository.RestaurantRepository;
+import lombok.Builder;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;

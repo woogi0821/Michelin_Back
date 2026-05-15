@@ -1,14 +1,16 @@
 package com.simplecoding.michelin_back.restaurant.entity;
 
 import jakarta.persistence.*;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
+import lombok.*;
 import jakarta.persistence.Id;
 
 @Entity
 @Table(name = "RESTAURANT_IMAGES")
+@Setter
 @Getter
 @NoArgsConstructor
+@AllArgsConstructor
+@Builder
 public class RestaurantImage {
     @Id
     @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "IMAGE_SEQ")
@@ -24,4 +26,10 @@ public class RestaurantImage {
 
     @Column(name = "IS_MAIN")
     private String isMain; // 'Y'면 메인 사진
+
+    @Column(name = "SORT_ORDER") // [추가] 순서를 정하는 필드
+    private Integer sortOrder;
+    public void updateIsMain(String isMain) {
+        this.isMain = isMain;
+    }
 }
