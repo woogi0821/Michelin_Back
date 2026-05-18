@@ -1,12 +1,16 @@
 package com.simplecoding.michelin_back.config;
 
+import com.simplecoding.michelin_back.security.JwtAuthenticationFilter;
+import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
@@ -15,7 +19,10 @@ import java.util.List;
 
 @Configuration
 @EnableWebSecurity
+@RequiredArgsConstructor
 public class SecurityConfig {
+
+    private final JwtAuthenticationFilter jwtAuthenticationFilter;
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
@@ -25,9 +32,30 @@ public class SecurityConfig {
                 .sessionManagement(session ->
                         session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
-                        // ✅ 임시 전체 허용 (403 디버깅용)
-                        .anyRequest().permitAll()
-                );
+                        // ── 공개 허용 ───────────────────────────────
+                        .requestMatchers(
+                                "/swagger-ui.html",
+                                "/swagger-ui/**",
+                                "/v3/api-docs",
+                                "/v3/api-docs/**",
+                                "/api-docs/**"
+                        ).permitAll()
+                        // 음식점 조회 (공개)
+                        .requestMatchers(
+                                "/api/restaurants",
+                                "/api/restaurants/**"
+                        ).permitAll()
+                        // 이미지 (공개)
+                        .requestMatchers("/images/**").permitAll()
+                        // 로그인/회원가입 (공개)
+                        .requestMatchers("/api/auth/**").permitAll()
+                        // 리뷰 조회 GET만 공개 ✅ HttpMethod.GET 으로 수정
+                        .requestMatchers(HttpMethod.GET, "/api/reviews/**").permitAll()
+                        // ── 인증 필요 ───────────────────────────────
+                        .anyRequest().authenticated()
+                )
+                // ✅ JWT 필터 연결
+                .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
     }

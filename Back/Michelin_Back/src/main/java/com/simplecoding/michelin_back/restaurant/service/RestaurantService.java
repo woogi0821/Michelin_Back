@@ -97,11 +97,12 @@ public class RestaurantService {
                 .kakaoPlaceUrl(requestDto.getKakaoPlaceUrl())
                 .kakaoPlaceId(requestDto.getKakaoPlaceId())
                 .phone(requestDto.getPhone())
+                .category(requestDto.getCategory())
                 .build();
         return new RestaurantResponseDto(restaurantRepository.save(restaurant));
     }
 
-    // ── P2 - 음식점 수정 (Restaurant.update() 파라미터에 맞춤) ──────────
+    // ── P2 - 음식점 수정 ✅ kakaoPlaceId 추가 ───────────────────────────
     @Transactional
     public RestaurantResponseDto update(Long id, RestaurantRequestDto requestDto) {
         Restaurant restaurant = restaurantRepository.findById(id)
@@ -117,6 +118,7 @@ public class RestaurantService {
                 requestDto.getLat(),
                 requestDto.getLng(),
                 requestDto.getKakaoPlaceUrl(),
+                requestDto.getKakaoPlaceId(),  // ✅ 추가
                 requestDto.getCategory()
         );
         return new RestaurantResponseDto(restaurant);

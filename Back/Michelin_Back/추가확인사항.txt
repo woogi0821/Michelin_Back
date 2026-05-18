@@ -1,0 +1,79 @@
+================================================================
+P2 도메인 - 추가 확인 권장 사항 (병합 후 점검)
+작성일: 2026-05-18
+================================================================
+
+[1] JWT 프로퍼티 키 이름 불일치 가능성
+----------------------------------------------------------------
+- application.properties (공용):
+    jwt.secret-key
+    jwt.access-token-validity-in-milliseconds
+    jwt.refresh-token-validity-in-milliseconds
+
+- application-local.properties (로컬):
+    jwt.secret
+    jwt.access-expiration
+    jwt.refresh-expiration
+
+- JwtTokenProvider 가 실제 참조하는 키:
+    ${jwt.secret}
+    ${jwt.access-expiration}
+    ${jwt.refresh-expiration}
+
+▶ 현재 상태: spring.profiles.include=local 이 application.properties 에
+   들어 있어서 local 프로파일이 자동 활성화되며 정상 동작 중.
+
+▶ 위험 포인트: 다른 팀원이 spring.profiles.include=local 줄을 지우거나
+   배포 환경에서 local 프로파일이 안 켜지면 JWT 관련 빈 생성 실패로
+   기동 자체가 안 됨.
+
+▶ 권장: 공용 application.properties 의 키 이름을 JwtTokenProvider 가
+   참조하는 키(jwt.secret, jwt.access-expiration ...) 로 통일하거나,
+   JwtTokenProvider 의 @Value 키를 공용 properties 의 이름으로 변경.
+
+
+[2] 이미지 경로 설정도 동일 구조
+----------------------------------------------------------------
+- 공용 application.properties 에는:
+    image.upload-dir  (만 존재)
+
+- application-local.properties 에는:
+    image.upload-dir
+    image.restaurant-dir
+    image.base-url
+
+- RestaurantImageService 가 참조하는 키:
+    ${image.restaurant-dir}
+    ${image.base-url}
+
+▶ 위험 포인트: local 프로파일이 활성화되지 않으면
+   RestaurantImageService 빈 생성 시 PlaceholderResolutionException 으로
+   기동 실패.
+
+▶ 권장: 공용 application.properties 에도 default 값 정의하거나,
+   @Value 어노테이션에 기본값 지정.
+   예) @Value("${image.restaurant-dir:C:/images/restaurants/}")
+
+
+[3] CORS 설정 중복
+----------------------------------------------------------------
+- WebConfig.addCorsMappings()                  : CORS 설정 1
+- SecurityConfig.corsConfigurationSource()     : CORS 설정 2
+
+▶ 현재 동작: Spring Security 가 활성화되어 있으므로
+   SecurityConfig 의 CorsConfigurationSource 가 우선 적용됨.
+   WebConfig 의 CORS 블록은 실질적으로 사용되지 않음 (죽은 코드).
+
+▶ 권장: WebConfig 의 addCorsMappings() 메서드를 삭제하고
+   CORS 정책은 SecurityConfig 한곳에서만 관리. (이중 관리 시
+   설정 변경 누락 위험)
+
+
+================================================================
+요약
+================================================================
+- 당장의 기동/동작에는 문제 없음 (local 프로파일이 켜져 있음)
+- 그러나 위 3가지는 추후 트러블슈팅 시 시간을 낭비하기 쉬운
+  포인트이므로 인지하고 있을 것을 권장.
+- P2 도메인 본체 코드는 정상 작동 가능 상태.
+================================================================
