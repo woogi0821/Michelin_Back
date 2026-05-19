@@ -5,6 +5,7 @@ import jakarta.persistence.*;
 import lombok.*;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 
 /**
  * 회원 엔티티
@@ -13,6 +14,8 @@ import java.time.LocalDate;
 @Entity
 @Table(name = "MEMBER")
 @Getter
+@Builder
+@AllArgsConstructor
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class Member extends BaseTimeEntity {
 
@@ -54,4 +57,21 @@ public class Member extends BaseTimeEntity {
 
     @Column(name = "SUSPENDED_UNTIL")
     private LocalDate suspendedUntil;
+
+    // 회원 정지
+    public void suspend(LocalDate until) {
+        this.status = "SUSPENDED";
+        this.suspendedUntil = until;
+    }
+
+    // 정지 해제
+    public void releaseSuspension() {
+        this.status = "ACTIVE";
+        this.suspendedUntil = null;
+    }
+
+    // 패널티 누적
+    public void addPenalty() {
+        this.penaltyCount = (this.penaltyCount == null ? 0 : this.penaltyCount) + 1;
+    }
 }

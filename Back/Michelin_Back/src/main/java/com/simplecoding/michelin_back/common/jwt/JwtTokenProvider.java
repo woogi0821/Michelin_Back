@@ -1,5 +1,6 @@
 package com.simplecoding.michelin_back.common.jwt;
 
+import com.simplecoding.michelin_back.common.CustomUserDetails;
 import com.simplecoding.michelin_back.member.entity.Member;
 import io.jsonwebtoken.*;
 import io.jsonwebtoken.security.Keys;
@@ -9,7 +10,6 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
-import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Component;
 
@@ -107,7 +107,8 @@ public class JwtTokenProvider {
         Collection<? extends GrantedAuthority> authorities =
                 List.of(new SimpleGrantedAuthority(roleClaim.toString().trim()));
 
-        UserDetails principal = new User(claims.getSubject(), "", authorities);
+        Long memberId = claims.get("memberId", Long.class);
+        UserDetails principal = new CustomUserDetails(memberId, claims.getSubject(), "", roleClaim.toString().trim());
 
         return new UsernamePasswordAuthenticationToken(principal, "", authorities);
     }

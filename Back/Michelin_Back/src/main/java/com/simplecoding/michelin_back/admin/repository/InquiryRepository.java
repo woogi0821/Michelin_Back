@@ -15,4 +15,8 @@ public interface InquiryRepository extends JpaRepository<Inquiry, Long> {
 
     // 미처리 문의 건수 (대시보드용)
     long countByStatus(String status);
+
+    // 일별 통계 집계용
+    long countByCreatedAtBetween(java.time.LocalDateTime from, java.time.LocalDateTime to);
+    long countByStatusAndCreatedAtBetween(String status, java.time.LocalDateTime from, java.time.LocalDateTime to);
 }
