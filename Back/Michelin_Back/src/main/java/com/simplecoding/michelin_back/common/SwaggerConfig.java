@@ -1,4 +1,4 @@
-package com.simplecoding.chargerreservation.common;
+package com.simplecoding.michelin_back.common;
 
 import io.swagger.v3.oas.models.Components;
 import io.swagger.v3.oas.models.OpenAPI;

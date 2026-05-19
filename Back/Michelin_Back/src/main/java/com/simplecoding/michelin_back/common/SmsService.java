@@ -1,4 +1,4 @@
-package com.simplecoding.chargerreservation.common;
+package com.simplecoding.michelin_back.common;
 
 import jakarta.annotation.PostConstruct;
 import net.nurigo.sdk.NurigoApp;
