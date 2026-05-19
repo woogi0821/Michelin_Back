@@ -1,9 +1,9 @@
-package com.simplecoding.chargerreservation.common.jwt;
+package com.simplecoding.michelin_back.common.jwt;
 
-import com.simplecoding.chargerreservation.member.entity.Member;
-import com.simplecoding.chargerreservation.member.entity.MemberToken;
-import com.simplecoding.chargerreservation.member.repository.MemberRepository;
-import com.simplecoding.chargerreservation.member.repository.MemberTokenRepository;
+import com.simplecoding.michelin_back.member.entity.Member;
+import com.simplecoding.michelin_back.member.entity.MemberToken;
+import com.simplecoding.michelin_back.member.repository.MemberRepository;
+import com.simplecoding.michelin_back.member.repository.MemberTokenRepository;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;

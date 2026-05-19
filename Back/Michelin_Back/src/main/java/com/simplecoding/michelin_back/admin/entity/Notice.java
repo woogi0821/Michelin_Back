@@ -1,25 +1,22 @@
 package com.simplecoding.michelin_back.admin.entity;
 
+import com.simplecoding.michelin_back.common.BaseTimeEntity;
 import jakarta.persistence.*;
 import lombok.*;
-import org.springframework.data.annotation.CreatedDate;
-import org.springframework.data.annotation.LastModifiedDate;
-import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 import java.time.LocalDateTime;
 
 /**
  * 공지사항 엔티티
- * DB 컬럼: INSERT_TIME / UPDATE_TIME / DELET_TIME (BaseTimeEntity 미사용)
- * 소프트 딜리트 방식 — DELET_YN = 'Y' 처리
- * 한국어 상태에서만 노출 (외국어 상태 비노출은 프론트에서 처리)
+ * BaseTimeEntity 상속 — insertTime(INSERT_TIME) / updateTime(UPDATE_TIME)
+ * 소프트 딜리트 방식 — DELET_YN = 'Y' 처리, DELET_TIME 별도 관리
+ * 한국어 상태에서만 노출 (외국어 비노출은 프론트에서 처리)
  */
 @Entity
 @Table(name = "NOTICE")
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-@EntityListeners(AuditingEntityListener.class)
-public class Notice {
+public class Notice extends BaseTimeEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "seq_notice")
@@ -44,14 +41,6 @@ public class Notice {
     @Column(name = "DELET_YN", nullable = false, length = 1)
     private String deletYn = "N";
 
-    @CreatedDate
-    @Column(name = "INSERT_TIME", updatable = false)
-    private LocalDateTime insertTime;
-
-    @LastModifiedDate
-    @Column(name = "UPDATE_TIME")
-    private LocalDateTime updateTime;
-
     @Column(name = "DELET_TIME")
     private LocalDateTime deletTime;
 
@@ -64,14 +53,12 @@ public class Notice {
         this.deletYn = "N";
     }
 
-    // 수정
     public void update(String title, String content, String fixYn) {
         this.title = title;
         this.content = content;
         this.fixYn = fixYn;
     }
 
-    // 소프트 딜리트
     public void delete() {
         this.deletYn = "Y";
         this.deletTime = LocalDateTime.now();
