@@ -1,6 +1,7 @@
-package com.simplecoding.chargerreservation.common.jwt;
+package com.simplecoding.michelin_back.common.jwt;
 
-import com.simplecoding.chargerreservation.member.entity.Member;
+import com.simplecoding.michelin_back.common.CustomUserDetails;
+import com.simplecoding.michelin_back.member.entity.Member;
 import io.jsonwebtoken.*;
 import io.jsonwebtoken.security.Keys;
 import lombok.extern.slf4j.Slf4j;
@@ -9,7 +10,6 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
-import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Component;
 
@@ -33,12 +33,10 @@ public class JwtTokenProvider {
 
         byte[] keyBytes = secretKey.getBytes(StandardCharsets.UTF_8);
         this.key = Keys.hmacShaKeyFor(keyBytes);
-
         this.accessTokenValidityInMilliseconds = accessTokenValidity;
         this.refreshTokenValidityInMilliseconds = refreshTokenValidity;
     }
 
-    // Access Token 생성
     public String createAccessToken(Member member) {
         long now = (new Date()).getTime();
         Date validity = new Date(now + this.accessTokenValidityInMilliseconds);
@@ -52,7 +50,6 @@ public class JwtTokenProvider {
                 .compact();
     }
 
-    // Refresh Token 생성
     public String createRefreshToken(String loginId) {
         long now = (new Date()).getTime();
         Date validity = new Date(now + this.refreshTokenValidityInMilliseconds);
@@ -64,7 +61,6 @@ public class JwtTokenProvider {
                 .compact();
     }
 
-    // 토큰 유효성 및 만료일자 확인
     public boolean validateToken(String token) {
         try {
             Jwts.parserBuilder().setSigningKey(key).build().parseClaimsJws(token);
@@ -81,38 +77,32 @@ public class JwtTokenProvider {
         return false;
     }
 
-    // 토큰에서 LoginID 추출하는 메서드
     public String getLoginId(String token) {
         try {
             return Jwts.parserBuilder()
-                .setSigningKey(key)
-                .build()
-                .parseClaimsJws(token)
-                .getBody()
-                .getSubject();
+                    .setSigningKey(key).build()
+                    .parseClaimsJws(token).getBody().getSubject();
         } catch (ExpiredJwtException e) {
             return e.getClaims().getSubject();
         }
     }
 
-    // JWT 토큰을 복호화해서 유저 정보(Authentication)를 꺼내는 메서드
+    // CustomUserDetails 반환 — memberId를 토큰 클레임에서 추출
     public Authentication getAuthentication(String accessToken) {
         Claims claims = parseClaims(accessToken);
 
         Object roleClaim = claims.get("role");
-        if (roleClaim == null) {
-            throw new RuntimeException("권한 정보가 없는 토큰입니다.");
-        }
+        if (roleClaim == null) throw new RuntimeException("권한 정보가 없는 토큰입니다.");
 
         Collection<? extends GrantedAuthority> authorities =
                 List.of(new SimpleGrantedAuthority(roleClaim.toString().trim()));
 
-        UserDetails principal = new User(claims.getSubject(), "", authorities);
+        Long memberId = claims.get("memberId", Long.class);
+        UserDetails principal = new CustomUserDetails(memberId, claims.getSubject(), "", roleClaim.toString().trim());
 
         return new UsernamePasswordAuthenticationToken(principal, "", authorities);
     }
 
-    // 토큰 복호화 보조 메서드
     private Claims parseClaims(String accessToken) {
         try {
             return Jwts.parserBuilder().setSigningKey(key).build().parseClaimsJws(accessToken).getBody();
