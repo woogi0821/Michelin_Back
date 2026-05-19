@@ -1,23 +1,25 @@
 package com.simplecoding.michelin_back.member.entity;
 
-import com.simplecoding.michelin_back.common.BaseTimeEntity;
 import jakarta.persistence.*;
 import lombok.*;
+import org.springframework.data.annotation.CreatedDate;
+import org.springframework.data.annotation.LastModifiedDate;
+import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 /**
  * 회원 엔티티
- * ※ 회원 담당 파트에서 필요한 필드 추가 예정
+ * DB 컬럼: INSERT_TIME / UPDATE_TIME (BaseTimeEntity 미사용 — 기존 DB 컬럼명 상이)
+ * ※ 회원 담당 파트(P1~P5)에서 필요한 필드 추가 예정
  */
 @Entity
 @Table(name = "MEMBER")
 @Getter
-@Builder
-@AllArgsConstructor
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-public class Member extends BaseTimeEntity {
+@EntityListeners(AuditingEntityListener.class)
+public class Member {
 
     @Id
     @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "seq_member")
@@ -58,20 +60,11 @@ public class Member extends BaseTimeEntity {
     @Column(name = "SUSPENDED_UNTIL")
     private LocalDate suspendedUntil;
 
-    // 회원 정지
-    public void suspend(LocalDate until) {
-        this.status = "SUSPENDED";
-        this.suspendedUntil = until;
-    }
+    @CreatedDate
+    @Column(name = "INSERT_TIME", updatable = false)
+    private LocalDateTime insertTime;
 
-    // 정지 해제
-    public void releaseSuspension() {
-        this.status = "ACTIVE";
-        this.suspendedUntil = null;
-    }
-
-    // 패널티 누적
-    public void addPenalty() {
-        this.penaltyCount = (this.penaltyCount == null ? 0 : this.penaltyCount) + 1;
-    }
+    @LastModifiedDate
+    @Column(name = "UPDATE_TIME")
+    private LocalDateTime updateTime;
 }

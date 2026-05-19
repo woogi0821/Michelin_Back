@@ -1,4 +1,4 @@
-package com.simplecoding.michelin_back.common;
+package com.simplecoding.chargerreservation.common;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;

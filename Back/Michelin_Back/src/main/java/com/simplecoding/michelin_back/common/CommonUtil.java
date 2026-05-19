@@ -1,4 +1,4 @@
-package com.simplecoding.michelin_back.common;
+package com.simplecoding.chargerreservation.common;
 
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;

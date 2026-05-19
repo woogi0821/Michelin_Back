@@ -1,4 +1,4 @@
-package com.simplecoding.michelin_back.common;
+package com.simplecoding.chargerreservation.common;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;

@@ -1,6 +1,6 @@
-package com.simplecoding.michelin_back.common.jwt;
+package com.simplecoding.chargerreservation.common.jwt;
 
-import com.simplecoding.michelin_back.member.entity.Member;
+import com.simplecoding.chargerreservation.member.entity.Member;
 import lombok.Builder;
 import lombok.Getter;
 import java.util.Map;

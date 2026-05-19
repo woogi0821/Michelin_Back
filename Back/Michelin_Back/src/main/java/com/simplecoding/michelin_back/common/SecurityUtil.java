@@ -1,4 +1,4 @@
-package com.simplecoding.michelin_back.common;
+package com.simplecoding.chargerreservation.common;
 
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;

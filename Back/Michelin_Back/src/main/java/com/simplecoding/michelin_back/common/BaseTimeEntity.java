@@ -1,4 +1,4 @@
-package com.simplecoding.michelin_back.common;
+package com.simplecoding.chargerreservation.common;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.EntityListeners;
@@ -18,7 +18,7 @@ public abstract class BaseTimeEntity {
     @CreatedDate
     @Column(updatable = false)
     private LocalDateTime insertTime;
-
     @LastModifiedDate
-    private LocalDateTime updateTime;
+    private LocalDateTime  updateTime;
 }
+

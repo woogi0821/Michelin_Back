@@ -97,5 +97,3 @@ coverage/
 # 로컬 SSL 인증서
 *.crt
 *.cer
-Back/Michelin_Back/src/main/resources/application.properties
-Back/Michelin_Back/src/main/resources/application.properties
