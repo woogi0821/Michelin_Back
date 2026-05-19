@@ -3,75 +3,97 @@ package com.simplecoding.michelin_back.common.jwt;
 import com.simplecoding.michelin_back.member.entity.Member;
 import lombok.Builder;
 import lombok.Getter;
+
 import java.util.Map;
 
 @Getter
 @Builder
 public class OAuth2Attributes {
-    private Map<String, Object> attributes;     // 소셜 응답 전체 데이터
-    private String nameAttributeKey;           // OAuth2 로그인 키 (PK 역할)
-    private String name;                       // 사용자 이름
-    private String email;                      // 사용자 이메일
-    private String provider;                   // 소셜 종류 (KAKAO, NAVER)
-    private String providerId;                 // 소셜 고유 ID
+    private Map<String, Object> attributes;
+    private String nameAttributeKey;
+    private String name;
+    private String email;
+    private String phone;      // 가능한 경우 추출, 없으면 ""
+    private String provider;
+    private String providerId;
 
-    /**
-     * registrationId(kakao, naver)에 따라 빌더 메서드를 호출
-     */
-    public static OAuth2Attributes of(String registrationId, String userNameAttributeName, Map<String, Object> attributes) {
+    public static OAuth2Attributes of(String registrationId, String userNameAttributeName,
+                                      Map<String, Object> attributes) {
         if ("naver".equals(registrationId)) {
             return ofNaver("id", attributes);
         }
         if ("kakao".equals(registrationId)) {
-            return ofKakao("id", attributes); // 카카오는 id가 최상위에 있음
+            return ofKakao("id", attributes);
         }
-
         return ofKakao(userNameAttributeName, attributes);
     }
 
+    @SuppressWarnings("unchecked")
     private static OAuth2Attributes ofKakao(String userNameAttributeName, Map<String, Object> attributes) {
-        // 카카오: kakao_account 내부에 profile이 있고 그 안에 닉네임이 있음
         Map<String, Object> kakaoAccount = (Map<String, Object>) attributes.get("kakao_account");
         Map<String, Object> kakaoProfile = (Map<String, Object>) kakaoAccount.get("profile");
 
+        // 전화번호: scope에 phone_number 포함 시 제공 (+82 10-xxxx-xxxx → 정규화)
+        String rawPhone = (String) kakaoAccount.getOrDefault("phone_number", "");
+        String phone = normalizePhone(rawPhone);
+
         return OAuth2Attributes.builder()
-            .name((String) kakaoProfile.get("nickname"))
-            .email((String) kakaoAccount.get("email"))
-            .provider("KAKAO")
-            .providerId(String.valueOf(attributes.get(userNameAttributeName)))
-            .attributes(attributes)
-            .nameAttributeKey(userNameAttributeName)
-            .build();
+                .name((String) kakaoProfile.get("nickname"))
+                .email((String) kakaoAccount.get("email"))
+                .phone(phone)
+                .provider("KAKAO")
+                .providerId(String.valueOf(attributes.get(userNameAttributeName)))
+                .attributes(attributes)
+                .nameAttributeKey(userNameAttributeName)
+                .build();
     }
 
+    @SuppressWarnings("unchecked")
     private static OAuth2Attributes ofNaver(String userNameAttributeName, Map<String, Object> attributes) {
-        // 네이버: 모든 데이터가 response라는 키로 감싸져 있음
         Map<String, Object> response = (Map<String, Object>) attributes.get("response");
 
+        // 전화번호: scope에 mobile 포함 시 제공 (+82-10-xxxx-xxxx → 정규화)
+        String rawPhone = (String) response.getOrDefault("mobile", "");
+        String phone = normalizePhone(rawPhone);
+
         return OAuth2Attributes.builder()
-            .name((String) response.get("name"))
-            .email((String) response.get("email"))
-            .provider("NAVER")
-            .providerId((String) response.get(userNameAttributeName))
-            .attributes(response)
-            .nameAttributeKey(userNameAttributeName)
-            .build();
+                .name((String) response.get("name"))
+                .email((String) response.get("email"))
+                .phone(phone)
+                .provider("NAVER")
+                .providerId((String) response.get(userNameAttributeName))
+                .attributes(response)
+                .nameAttributeKey(userNameAttributeName)
+                .build();
     }
 
     /**
-     * 처음 가입하는 시점 Member 엔티티를 생성
+     * "+82-10-1234-5678" / "+82 10-1234-5678" → "010-1234-5678"
+     * 제공되지 않으면 빈 문자열 반환 (DB NOT NULL 우회)
      */
-    public Member toEntity() {
-        return Member.builder()
-            .loginId(provider + "_" + providerId) // 중복 방지를 위한 고유 ID 조합
-            .loginPw("")
-            .name(name)
-            .email(email)
-            .provider(provider)
-            .providerId(providerId)
-//            .status("ACTIVE")
-//            .memberGrade("N")
-            .build();
+    private static String normalizePhone(String raw) {
+        if (raw == null || raw.isBlank()) return "";
+        // +82 국가코드 제거 후 앞자리 0 붙이기
+        String digits = raw.replaceAll("[^0-9]", "");
+        if (digits.startsWith("82") && digits.length() >= 11) {
+            digits = "0" + digits.substring(2);
+        }
+        // 11자리면 하이픈 포맷으로
+        if (digits.length() == 11) {
+            return digits.substring(0, 3) + "-" + digits.substring(3, 7) + "-" + digits.substring(7);
+        }
+        return digits.length() > 0 ? digits : "";
     }
 
+    public Member toEntity() {
+        return Member.builder()
+                .loginId(provider + "_" + providerId)
+                .loginPw("")
+                .name(name)
+                .email(email)
+                .phone(phone)          // 정규화된 전화번호 (없으면 "")
+                .provider(provider)
+                .providerId(providerId)
+                .build();
+    }
 }

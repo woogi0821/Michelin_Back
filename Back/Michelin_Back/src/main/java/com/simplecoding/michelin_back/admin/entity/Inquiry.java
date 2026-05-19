@@ -3,17 +3,19 @@ package com.simplecoding.michelin_back.admin.entity;
 import com.simplecoding.michelin_back.member.entity.Member;
 import jakarta.persistence.*;
 import lombok.*;
+import org.springframework.data.annotation.CreatedDate;
+import org.springframework.data.annotation.LastModifiedDate;
+import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 import java.time.LocalDateTime;
 
-/**
- * 고객센터 문의 엔티티
- * ADMIN_ID nullable — 문의 접수 시점엔 담당 관리자 미배정
- */
 @Entity
 @Table(name = "INQUIRY")
 @Getter
+@Builder
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
+@AllArgsConstructor(access = AccessLevel.PRIVATE)
+@EntityListeners(AuditingEntityListener.class)
 public class Inquiry {
 
     @Id
@@ -26,47 +28,34 @@ public class Inquiry {
     @JoinColumn(name = "MEMBER_ID", nullable = false)
     private Member member;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "ADMIN_ID")
-    private Admin admin;
-
-    @Column(name = "CATEGORY", nullable = false, length = 20)
-    private String category;
-
-    @Column(name = "TITLE", nullable = false, length = 255)
+    @Column(name = "TITLE", nullable = false, length = 200)
     private String title;
 
-    @Column(name = "STATUS", nullable = false, length = 20)
+    @Column(name = "CONTENT", nullable = false, length = 2000)
+    private String content;
+
+    /** PENDING / ANSWERED */
+    @Builder.Default
+    @Column(name = "STATUS", nullable = false, length = 10)
     private String status = "PENDING";
 
-    @Lob
-    @Column(name = "ANSWER_CONTENT")
-    private String answerContent;
+    @Column(name = "ANSWER", length = 2000)
+    private String answer;
 
-    @Column(name = "ANSWER_AT")
-    private LocalDateTime answerAt;
+    @Column(name = "ANSWERED_AT")
+    private LocalDateTime answeredAt;
 
-    @Column(name = "CREATED_AT", updatable = false)
-    private LocalDateTime createdAt;
+    @CreatedDate
+    @Column(name = "INSERT_TIME", updatable = false)
+    private LocalDateTime insertTime;
 
-    @PrePersist
-    protected void onCreate() {
-        this.createdAt = LocalDateTime.now();
-    }
+    @LastModifiedDate
+    @Column(name = "UPDATE_TIME")
+    private LocalDateTime updateTime;
 
-    @Builder
-    public Inquiry(Member member, String category, String title) {
-        this.member = member;
-        this.category = category;
-        this.title = title;
-        this.status = "PENDING";
-    }
-
-    // 답변 등록
-    public void answer(Admin admin, String answerContent) {
-        this.admin = admin;
-        this.answerContent = answerContent;
-        this.answerAt = LocalDateTime.now();
+    public void answer(String answer) {
+        this.answer = answer;
         this.status = "ANSWERED";
+        this.answeredAt = LocalDateTime.now();
     }
 }

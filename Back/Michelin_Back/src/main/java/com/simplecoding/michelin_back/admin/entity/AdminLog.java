@@ -2,57 +2,46 @@ package com.simplecoding.michelin_back.admin.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
+import org.springframework.data.annotation.CreatedDate;
+import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 import java.time.LocalDateTime;
 
 /**
- * 관리자 활동 로그 엔티티
- * 패널티 관련 액션은 PenaltyHistory 전담 (역할 분리)
- * ACTION 예시: REVIEW_DELETE, NOTICE_CREATE, INQUIRY_ANSWER, RESTAURANT_UPDATE
- * TARGET_TYPE 예시: REVIEW, NOTICE, INQUIRY, RESTAURANT
+ * 관리자 행동 로그 (REVIEW_DELETE, NOTICE_CREATE, INQUIRY_ANSWER 등)
+ * 패널티 관련 로그는 PENALTY_HISTORY 별도 관리
  */
 @Entity
 @Table(name = "ADMIN_LOG")
 @Getter
+@Builder
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
+@AllArgsConstructor(access = AccessLevel.PRIVATE)
+@EntityListeners(AuditingEntityListener.class)
 public class AdminLog {
 
     @Id
     @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "seq_admin_log")
     @SequenceGenerator(name = "seq_admin_log", sequenceName = "SEQ_ADMIN_LOG", allocationSize = 1)
-    @Column(name = "LOG_ID")
-    private Long logId;
+    @Column(name = "ADMIN_LOG_ID")
+    private Long adminLogId;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "ADMIN_ID", nullable = false)
-    private Admin admin;
+    @Column(name = "ADMIN_ID", nullable = false)
+    private Long adminId;
 
-    @Column(name = "ACTION", nullable = false, length = 50)
-    private String action;
-
-    @Column(name = "TARGET_TYPE", length = 30)
-    private String targetType;
-
+    /** 조치 대상 엔티티 ID (리뷰ID, 공지ID 등) */
     @Column(name = "TARGET_ID")
     private Long targetId;
 
-    @Column(name = "DETAIL", length = 500)
-    private String detail;
+    /** 행동 유형: REVIEW_DELETE / NOTICE_CREATE / NOTICE_UPDATE / INQUIRY_ANSWER / MEMBER_GRADE_CHANGE */
+    @Column(name = "ADMIN_ACTION", nullable = false, length = 30)
+    private String adminAction;
 
-    @Column(name = "CREATED_AT", updatable = false)
-    private LocalDateTime createdAt;
+    /** 상세 설명 */
+    @Column(name = "ACTION_DETAIL", length = 500)
+    private String actionDetail;
 
-    @PrePersist
-    protected void onCreate() {
-        this.createdAt = LocalDateTime.now();
-    }
-
-    @Builder
-    public AdminLog(Admin admin, String action, String targetType, Long targetId, String detail) {
-        this.admin = admin;
-        this.action = action;
-        this.targetType = targetType;
-        this.targetId = targetId;
-        this.detail = detail;
-    }
+    @CreatedDate
+    @Column(name = "INSERT_TIME", updatable = false)
+    private LocalDateTime insertTime;
 }

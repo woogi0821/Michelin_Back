@@ -1,7 +1,6 @@
 package com.simplecoding.michelin_back.admin.dto;
 
-import lombok.Builder;
-import lombok.Getter;
+import lombok.*;
 
 import java.time.LocalDateTime;
 
@@ -9,13 +8,14 @@ public class AdminLogDto {
 
     @Getter
     @Builder
-    public static class Response{
-        private Long logId;
-        private String adminName;
-        private String action;
-        private String targetType;
-        private String targetId;
-        private String detail;
-        private LocalDateTime createdAt;
+    @NoArgsConstructor(access = AccessLevel.PROTECTED)
+    @AllArgsConstructor
+    public static class Response {
+        private Long adminLogId;
+        private Long adminId;
+        private Long targetId;
+        private String adminAction;
+        private String actionDetail;
+        private LocalDateTime insertTime;
     }
 }

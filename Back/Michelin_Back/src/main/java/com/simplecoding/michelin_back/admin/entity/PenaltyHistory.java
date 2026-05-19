@@ -3,23 +3,27 @@ package com.simplecoding.michelin_back.admin.entity;
 import com.simplecoding.michelin_back.member.entity.Member;
 import jakarta.persistence.*;
 import lombok.*;
+import org.springframework.data.annotation.CreatedDate;
+import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 import java.time.LocalDateTime;
 
 /**
- * 패널티 내역 엔티티
- * ADMIN_LOG와 역할 분리 — 패널티 도메인 전담
- * STATUS: APPLIED(부여) / REVOKED(취소)
+ * 패널티 이력 (WARNING / SUSPEND)
+ * 리뷰 신고 처리 또는 관리자 수동 패널티
  */
 @Entity
 @Table(name = "PENALTY_HISTORY")
 @Getter
+@Builder
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
+@AllArgsConstructor(access = AccessLevel.PRIVATE)
+@EntityListeners(AuditingEntityListener.class)
 public class PenaltyHistory {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "seq_penalty")
-    @SequenceGenerator(name = "seq_penalty", sequenceName = "SEQ_PENALTY_HISTORY", allocationSize = 1)
+    @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "seq_penalty_history")
+    @SequenceGenerator(name = "seq_penalty_history", sequenceName = "SEQ_PENALTY_HISTORY", allocationSize = 1)
     @Column(name = "PENALTY_ID")
     private Long penaltyId;
 
@@ -27,34 +31,26 @@ public class PenaltyHistory {
     @JoinColumn(name = "MEMBER_ID", nullable = false)
     private Member member;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "ADMIN_ID", nullable = false)
-    private Admin admin;
+    /** 패널티 원인 리뷰 ID (nullable — 수동 패널티의 경우 null) */
+    @Column(name = "REVIEW_ID")
+    private Long reviewId;
 
-    @Column(name = "REASON", nullable = false, length = 255)
-    private String reason;
+    /** 처리한 관리자 ID (nullable — 자동 처리의 경우 null) */
+    @Column(name = "ADMIN_ID")
+    private Long adminId;
 
-    @Column(name = "STATUS", nullable = false, length = 20)
-    private String status = "APPLIED";
+    @Column(name = "PENALTY_REASON", nullable = false, length = 500)
+    private String penaltyReason;
 
-    @Column(name = "CREATED_AT", updatable = false)
-    private LocalDateTime createdAt;
+    /** WARNING / SUSPEND */
+    @Column(name = "PENALTY_TYPE", nullable = false, length = 10)
+    private String penaltyType;
 
-    @PrePersist
-    protected void onCreate() {
-        this.createdAt = LocalDateTime.now();
-    }
+    /** 정지 일수 (SUSPEND 시에만 사용) */
+    @Column(name = "SUSPEND_DAYS")
+    private Integer suspendDays;
 
-    @Builder
-    public PenaltyHistory(Member member, Admin admin, String reason) {
-        this.member = member;
-        this.admin = admin;
-        this.reason = reason;
-        this.status = "APPLIED";
-    }
-
-    // 패널티 취소
-    public void revoke() {
-        this.status = "REVOKED";
-    }
+    @CreatedDate
+    @Column(name = "INSERT_TIME", updatable = false)
+    private LocalDateTime insertTime;
 }

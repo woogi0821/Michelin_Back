@@ -1,32 +1,35 @@
 package com.simplecoding.michelin_back.admin.dto;
 
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
-import lombok.Builder;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
+import lombok.*;
 
 import java.time.LocalDateTime;
 
 public class PenaltyHistoryDto {
 
     @Getter
-    @NoArgsConstructor
-    public static class Request{
-        @NotNull
+    @Builder
+    @NoArgsConstructor(access = AccessLevel.PROTECTED)
+    @AllArgsConstructor
+    public static class Response {
+        private Long penaltyId;
         private Long memberId;
-        @NotBlank
-        private String reason;
+        private String memberName;
+        private Long reviewId;
+        private Long adminId;
+        private String penaltyReason;
+        private String penaltyType;
+        private Integer suspendDays;
+        private LocalDateTime insertTime;
     }
 
     @Getter
-    @Builder
-    public static class Response{
-        private Long penaltyId;
-        private String memberName;
-        private String adminName;
-        private String reason;
-        private String status;
-        private LocalDateTime createdAt;
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class CreateRequest {
+        private Long memberId;
+        private Long reviewId;
+        private String penaltyReason;
+        private String penaltyType;
+        private Integer suspendDays;
     }
 }

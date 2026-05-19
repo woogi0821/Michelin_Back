@@ -1,6 +1,6 @@
 package com.simplecoding.michelin_back.admin.service;
 
-import com.simplecoding.michelin_back.admin.entity.Admin;
+import com.simplecoding.michelin_back.admin.dto.AdminLogDto;
 import com.simplecoding.michelin_back.admin.entity.AdminLog;
 import com.simplecoding.michelin_back.admin.repository.AdminLogRepository;
 import lombok.RequiredArgsConstructor;
@@ -11,32 +11,40 @@ import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor
+@Transactional(readOnly = true)
 public class AdminLogService {
 
     private final AdminLogRepository adminLogRepository;
 
-    // 로그 기록 (다른 서비스에서 호출)
+    /** 로그 기록 (다른 서비스에서 호출) */
     @Transactional
-    public void log(Admin admin, String action, String targetType, Long targetId, String detail) {
-        AdminLog adminLog = AdminLog.builder()
-                .admin(admin)
-                .action(action)
-                .targetType(targetType)
+    public void log(Long adminId, String action, Long targetId, String detail) {
+        adminLogRepository.save(AdminLog.builder()
+                .adminId(adminId)
+                .adminAction(action)
                 .targetId(targetId)
-                .detail(detail)
+                .actionDetail(detail)
+                .build());
+    }
+
+    public Page<AdminLogDto.Response> getAll(Pageable pageable) {
+        return adminLogRepository.findAllByOrderByInsertTimeDesc(pageable)
+                .map(this::toResponse);
+    }
+
+    public Page<AdminLogDto.Response> getByAdmin(Long adminId, Pageable pageable) {
+        return adminLogRepository.findByAdminIdOrderByInsertTimeDesc(adminId, pageable)
+                .map(this::toResponse);
+    }
+
+    private AdminLogDto.Response toResponse(AdminLog log) {
+        return AdminLogDto.Response.builder()
+                .adminLogId(log.getAdminLogId())
+                .adminId(log.getAdminId())
+                .targetId(log.getTargetId())
+                .adminAction(log.getAdminAction())
+                .actionDetail(log.getActionDetail())
+                .insertTime(log.getInsertTime())
                 .build();
-        adminLogRepository.save(adminLog);
-    }
-
-    // 관리자 활동 로그 목록
-    @Transactional(readOnly = true)
-    public Page<AdminLog> getLogs(Pageable pageable) {
-        return adminLogRepository.findAll(pageable);
-    }
-
-    // 특정 관리자 로그
-    @Transactional(readOnly = true)
-    public Page<AdminLog> getLogsByAdmin(Long adminId, Pageable pageable) {
-        return adminLogRepository.findByAdmin_AdminIdOrderByCreatedAtDesc(adminId, pageable);
     }
 }

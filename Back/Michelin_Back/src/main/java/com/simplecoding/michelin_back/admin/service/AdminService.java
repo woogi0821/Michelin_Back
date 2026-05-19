@@ -1,71 +1,75 @@
 package com.simplecoding.michelin_back.admin.service;
 
+import com.simplecoding.michelin_back.admin.dto.AdminDto;
 import com.simplecoding.michelin_back.admin.entity.Admin;
 import com.simplecoding.michelin_back.admin.repository.AdminRepository;
-import com.simplecoding.michelin_back.common.CustomUserDetails;
+import com.simplecoding.michelin_back.common.CommonException;
 import com.simplecoding.michelin_back.member.entity.Member;
 import com.simplecoding.michelin_back.member.repository.MemberRepository;
 import lombok.RequiredArgsConstructor;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
-import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.server.ResponseStatusException;
 
-import java.time.LocalDate;
+import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
+@Transactional(readOnly = true)
 public class AdminService {
 
     private final AdminRepository adminRepository;
     private final MemberRepository memberRepository;
     private final AdminLogService adminLogService;
 
-    // 현재 로그인한 관리자 정보 조회
-    @Transactional(readOnly = true)
-    public Admin getAdminInfo(CustomUserDetails userDetails) {
-        return getAdmin(userDetails.getMemberId());
-    }
+    /** 관리자 권한 부여 */
+    @Transactional
+    public AdminDto.Response grant(Long requestAdminId, AdminDto.GrantRequest req) {
+        Member member = memberRepository.findById(req.getMemberId())
+                .orElseThrow(() -> CommonException.notFound("회원을 찾을 수 없습니다."));
 
-    // 회원 목록 조회
-    @Transactional(readOnly = true)
-    public Page<Member> getMembers(String status, Pageable pageable) {
-        if (status == null || status.isBlank()) {
-            return memberRepository.findAll(pageable);
+        if (adminRepository.existsByMember_MemberId(req.getMemberId())) {
+            throw CommonException.badRequest("이미 관리자 권한을 보유한 회원입니다.");
         }
-        return memberRepository.findByStatusOrderByInsertTimeDesc(status, pageable);
+
+        member.changeGrade("A");
+
+        Admin admin = Admin.builder()
+                .member(member)
+                .adminRole(req.getAdminRole())
+                .build();
+
+        Admin saved = adminRepository.save(admin);
+        adminLogService.log(requestAdminId, "ADMIN_GRANT", req.getMemberId(),
+                "관리자 권한 부여: " + req.getAdminRole());
+
+        return toResponse(saved);
     }
 
-    // 회원 상세 조회
-    @Transactional(readOnly = true)
-    public Member getMember(Long memberId) {
-        return memberRepository.findById(memberId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "존재하지 않는 회원입니다."));
-    }
-
-    // 회원 정지
+    /** 관리자 권한 회수 */
     @Transactional
-    public void suspendMember(CustomUserDetails userDetails, Long memberId, LocalDate until) {
-        Admin admin = getAdmin(userDetails.getMemberId());
-        Member member = getMember(memberId);
-        member.suspend(until);
-        adminLogService.log(admin, "MEMBER_SUSPEND", "MEMBER", memberId,
-                member.getName() + " / " + until + "까지");
+    public void revoke(Long requestAdminId, Long adminId) {
+        Admin admin = adminRepository.findById(adminId)
+                .orElseThrow(() -> CommonException.notFound("관리자를 찾을 수 없습니다."));
+        Long memberId = admin.getMember().getMemberId();
+        admin.getMember().changeGrade("N");
+        adminRepository.delete(admin);
+        adminLogService.log(requestAdminId, "ADMIN_REVOKE", memberId, "관리자 권한 회수");
     }
 
-    // 회원 정지 해제
-    @Transactional
-    public void releaseMember(CustomUserDetails userDetails, Long memberId) {
-        Admin admin = getAdmin(userDetails.getMemberId());
-        Member member = getMember(memberId);
-        member.releaseSuspension();
-        adminLogService.log(admin, "MEMBER_RELEASE", "MEMBER", memberId, member.getName());
+    public List<AdminDto.Response> getAll() {
+        return adminRepository.findAll().stream()
+                .map(this::toResponse)
+                .collect(Collectors.toList());
     }
 
-    private Admin getAdmin(Long memberId) {
-        return adminRepository.findByMember_MemberId(memberId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.FORBIDDEN, "관리자 권한이 없습니다."));
+    private AdminDto.Response toResponse(Admin a) {
+        return AdminDto.Response.builder()
+                .adminId(a.getAdminId())
+                .memberId(a.getMember().getMemberId())
+                .loginId(a.getMember().getLoginId())
+                .name(a.getMember().getName())
+                .adminRole(a.getAdminRole())
+                .build();
     }
 }

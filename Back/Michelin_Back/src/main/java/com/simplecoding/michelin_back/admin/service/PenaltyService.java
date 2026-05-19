@@ -1,68 +1,90 @@
 package com.simplecoding.michelin_back.admin.service;
 
 import com.simplecoding.michelin_back.admin.dto.PenaltyHistoryDto;
-import com.simplecoding.michelin_back.admin.entity.Admin;
 import com.simplecoding.michelin_back.admin.entity.PenaltyHistory;
-import com.simplecoding.michelin_back.admin.repository.AdminRepository;
 import com.simplecoding.michelin_back.admin.repository.PenaltyHistoryRepository;
-import com.simplecoding.michelin_back.common.CustomUserDetails;
+import com.simplecoding.michelin_back.common.CommonException;
 import com.simplecoding.michelin_back.member.entity.Member;
 import com.simplecoding.michelin_back.member.repository.MemberRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.server.ResponseStatusException;
+
+import java.time.LocalDate;
+import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
+@Transactional(readOnly = true)
 public class PenaltyService {
 
     private final PenaltyHistoryRepository penaltyHistoryRepository;
-    private final AdminRepository adminRepository;
     private final MemberRepository memberRepository;
+    private final AdminLogService adminLogService;
 
-    // 특정 회원 패널티 내역
-    @Transactional(readOnly = true)
-    public Page<PenaltyHistory> getPenalties(Long memberId, Pageable pageable) {
-        return penaltyHistoryRepository.findByMember_MemberIdOrderByCreatedAtDesc(memberId, pageable);
-    }
-
-    // 패널티 부여
+    /** 관리자 수동 패널티 부여 */
     @Transactional
-    public PenaltyHistory givePenalty(CustomUserDetails userDetails, PenaltyHistoryDto.Request request) {
-        Admin admin = getAdmin(userDetails.getMemberId());
-        Member member = memberRepository.findById(request.getMemberId())
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "존재하지 않는 회원입니다."));
+    public PenaltyHistoryDto.Response givePenalty(Long adminId, PenaltyHistoryDto.CreateRequest req) {
+        Member member = memberRepository.findById(req.getMemberId())
+                .orElseThrow(() -> CommonException.notFound("회원을 찾을 수 없습니다."));
+
+        member.addPenalty();
+
+        if ("SUSPEND".equals(req.getPenaltyType())) {
+            int days = req.getSuspendDays() != null ? req.getSuspendDays() : 7;
+            member.suspend(LocalDate.now().plusDays(days));
+        }
 
         PenaltyHistory penalty = PenaltyHistory.builder()
                 .member(member)
-                .admin(admin)
-                .reason(request.getReason())
+                .reviewId(req.getReviewId())
+                .adminId(adminId)
+                .penaltyReason(req.getPenaltyReason())
+                .penaltyType(req.getPenaltyType())
+                .suspendDays(req.getSuspendDays())
                 .build();
 
-        member.addPenalty();
-        return penaltyHistoryRepository.save(penalty);
+        PenaltyHistory saved = penaltyHistoryRepository.save(penalty);
+
+        adminLogService.log(adminId, "MEMBER_SUSPEND", req.getMemberId(),
+                req.getPenaltyType() + " - " + req.getPenaltyReason());
+
+        return toResponse(saved);
     }
 
-    // 패널티 취소
+    /** 정지 해제 */
     @Transactional
-    public void revokePenalty(CustomUserDetails userDetails, Long penaltyId) {
-        getAdmin(userDetails.getMemberId());
-        PenaltyHistory penalty = penaltyHistoryRepository.findById(penaltyId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "존재하지 않는 패널티입니다."));
-
-        if ("REVOKED".equals(penalty.getStatus())) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "이미 취소된 패널티입니다.");
-        }
-
-        penalty.revoke();
+    public void releaseSuspension(Long memberId, Long adminId) {
+        Member member = memberRepository.findById(memberId)
+                .orElseThrow(() -> CommonException.notFound("회원을 찾을 수 없습니다."));
+        member.releaseSuspension();
+        adminLogService.log(adminId, "MEMBER_SUSPEND_RELEASE", memberId, "정지 해제");
     }
 
-    private Admin getAdmin(Long memberId) {
-        return adminRepository.findByMember_MemberId(memberId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.FORBIDDEN, "관리자 권한이 없습니다."));
+    public List<PenaltyHistoryDto.Response> getMemberPenalties(Long memberId) {
+        return penaltyHistoryRepository.findByMember_MemberIdOrderByInsertTimeDesc(memberId)
+                .stream().map(this::toResponse).collect(Collectors.toList());
+    }
+
+    public Page<PenaltyHistoryDto.Response> getAll(Pageable pageable) {
+        return penaltyHistoryRepository.findAllByOrderByInsertTimeDesc(pageable)
+                .map(this::toResponse);
+    }
+
+    private PenaltyHistoryDto.Response toResponse(PenaltyHistory p) {
+        return PenaltyHistoryDto.Response.builder()
+                .penaltyId(p.getPenaltyId())
+                .memberId(p.getMember().getMemberId())
+                .memberName(p.getMember().getName())
+                .reviewId(p.getReviewId())
+                .adminId(p.getAdminId())
+                .penaltyReason(p.getPenaltyReason())
+                .penaltyType(p.getPenaltyType())
+                .suspendDays(p.getSuspendDays())
+                .insertTime(p.getInsertTime())
+                .build();
     }
 }

@@ -1,42 +1,39 @@
 package com.simplecoding.michelin_back.admin.dto;
 
-import jakarta.validation.constraints.NotBlank;
-import lombok.Builder;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
+import lombok.*;
 
 import java.time.LocalDateTime;
 
 public class InquiryDto {
 
     @Getter
+    @Builder
+    @NoArgsConstructor(access = AccessLevel.PROTECTED)
+    @AllArgsConstructor
+    public static class Response {
+        private Long inquiryId;
+        private Long memberId;
+        private String memberName;
+        private String title;
+        private String content;
+        private String status;
+        private String answer;
+        private LocalDateTime answeredAt;
+        private LocalDateTime insertTime;
+    }
+
+    @Getter
     @NoArgsConstructor
-    public static class AnswerRequest{
-        @NotBlank
-        private String answerContent;
+    @AllArgsConstructor
+    public static class CreateRequest {
+        private String title;
+        private String content;
     }
 
     @Getter
-    @Builder
-    public static class ListResponse{
-        private Long inquiryId;
-        private String category;
-        private String title;
-        private String status;
-        private String memberName;
-        private LocalDateTime createdAt;
-    }
-
-    @Getter
-    @Builder
-    public static class DetailResponse{
-        private Long inquiryId;
-        private String category;
-        private String title;
-        private String status;
-        private String memberName;
-        private String answerContent;
-        private LocalDateTime answerAt;
-        private LocalDateTime createdAt;
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class AnswerRequest {
+        private String answer;
     }
 }

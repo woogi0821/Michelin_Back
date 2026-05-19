@@ -1,71 +1,65 @@
 package com.simplecoding.michelin_back.admin.controller;
 
-import com.simplecoding.michelin_back.admin.entity.Admin;
+import com.simplecoding.michelin_back.admin.dto.AdminDto;
+import com.simplecoding.michelin_back.admin.dto.AdminLogDto;
+import com.simplecoding.michelin_back.admin.repository.AdminRepository;
+import com.simplecoding.michelin_back.admin.service.AdminLogService;
 import com.simplecoding.michelin_back.admin.service.AdminService;
 import com.simplecoding.michelin_back.common.ApiResponse;
+import com.simplecoding.michelin_back.common.CommonException;
 import com.simplecoding.michelin_back.common.CustomUserDetails;
-import com.simplecoding.michelin_back.member.entity.Member;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
-import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
-import java.time.LocalDate;
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/admin")
 @RequiredArgsConstructor
-@PreAuthorize("isAuthenticated()")
+@PreAuthorize("hasAnyAuthority('A','S')")
 public class AdminController {
 
     private final AdminService adminService;
+    private final AdminLogService adminLogService;
+    private final AdminRepository adminRepository;
 
-    // 현재 관리자 정보
-    @GetMapping("/me")
-    public ResponseEntity<ApiResponse<Admin>> getAdminInfo(
-            @AuthenticationPrincipal CustomUserDetails userDetails) {
-        Admin admin = adminService.getAdminInfo(userDetails);
-        return ResponseEntity.ok(new ApiResponse<>(true, "관리자 정보 조회 성공", admin, 0, 1));
+    @GetMapping
+    public ResponseEntity<ApiResponse<List<AdminDto.Response>>> list() {
+        return ResponseEntity.ok(ApiResponse.success(adminService.getAll()));
     }
 
-    // 회원 목록 조회
-    @GetMapping("/members")
-    public ResponseEntity<ApiResponse<Page<Member>>> getMembers(
-            @RequestParam(required = false) String status,
-            @PageableDefault(size = 10, sort = "insertTime", direction = Sort.Direction.DESC) Pageable pageable) {
-        Page<Member> members = adminService.getMembers(status, pageable);
-        return ResponseEntity.ok(new ApiResponse<>(true, "회원 목록 조회 성공", members, (int) pageable.getOffset(), members.getTotalElements()));
+    @PostMapping("/grant")
+    public ResponseEntity<ApiResponse<AdminDto.Response>> grant(
+            @AuthenticationPrincipal CustomUserDetails user,
+            @RequestBody AdminDto.GrantRequest req) {
+        Long adminId = getAdminId(user.getMemberId());
+        return ResponseEntity.ok(ApiResponse.success(adminService.grant(adminId, req)));
     }
 
-    // 회원 상세 조회
-    @GetMapping("/members/{memberId}")
-    public ResponseEntity<ApiResponse<Member>> getMember(@PathVariable Long memberId) {
-        Member member = adminService.getMember(memberId);
-        return ResponseEntity.ok(new ApiResponse<>(true, "회원 상세 조회 성공", member, 0, 1));
+    @DeleteMapping("/{adminId}/revoke")
+    public ResponseEntity<ApiResponse<Void>> revoke(
+            @AuthenticationPrincipal CustomUserDetails user,
+            @PathVariable Long adminId) {
+        Long myAdminId = getAdminId(user.getMemberId());
+        adminService.revoke(myAdminId, adminId);
+        return ResponseEntity.ok(ApiResponse.success("관리자 권한이 회수되었습니다."));
     }
 
-    // 회원 정지
-    @PatchMapping("/members/{memberId}/suspend")
-    public ResponseEntity<ApiResponse<Void>> suspendMember(
-            @AuthenticationPrincipal CustomUserDetails userDetails,
-            @PathVariable Long memberId,
-            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate until) {
-        adminService.suspendMember(userDetails, memberId, until);
-        return ResponseEntity.ok(new ApiResponse<>(true, "회원 정지 처리 성공", null, 0, 0));
+    @GetMapping("/logs")
+    public ResponseEntity<ApiResponse<Page<AdminLogDto.Response>>> logs(
+            @PageableDefault(size = 30) Pageable pageable) {
+        return ResponseEntity.ok(ApiResponse.success(adminLogService.getAll(pageable)));
     }
 
-    // 회원 정지 해제
-    @PatchMapping("/members/{memberId}/release")
-    public ResponseEntity<ApiResponse<Void>> releaseMember(
-            @AuthenticationPrincipal CustomUserDetails userDetails,
-            @PathVariable Long memberId) {
-        adminService.releaseMember(userDetails, memberId);
-        return ResponseEntity.ok(new ApiResponse<>(true, "회원 정지 해제 성공", null, 0, 0));
+    private Long getAdminId(Long memberId) {
+        return adminRepository.findByMember_MemberId(memberId)
+                .orElseThrow(() -> CommonException.forbidden("관리자 권한이 없습니다."))
+                .getAdminId();
     }
 }

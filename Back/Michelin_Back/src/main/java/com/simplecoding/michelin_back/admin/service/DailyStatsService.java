@@ -1,78 +1,113 @@
 package com.simplecoding.michelin_back.admin.service;
 
+import com.simplecoding.michelin_back.admin.dto.DailyStatsDto;
 import com.simplecoding.michelin_back.admin.entity.DailyStats;
 import com.simplecoding.michelin_back.admin.repository.DailyStatsRepository;
 import com.simplecoding.michelin_back.admin.repository.InquiryRepository;
-import com.simplecoding.michelin_back.admin.repository.PenaltyHistoryRepository;
-import com.simplecoding.michelin_back.chatbot.repository.ChatbotSessionRepository;
 import com.simplecoding.michelin_back.member.repository.MemberRepository;
+import com.simplecoding.michelin_back.review.repository.RestaurantReviewRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.http.HttpStatus;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Service
 @RequiredArgsConstructor
+@Transactional(readOnly = true)
 public class DailyStatsService {
 
     private final DailyStatsRepository dailyStatsRepository;
     private final MemberRepository memberRepository;
+    private final RestaurantReviewRepository reviewRepository;
     private final InquiryRepository inquiryRepository;
-    private final PenaltyHistoryRepository penaltyHistoryRepository;
-    private final ChatbotSessionRepository chatbotSessionRepository;
 
-    // 매일 새벽 1시 집계
+    /** 매일 새벽 1시 집계 */
     @Scheduled(cron = "0 0 1 * * *")
     @Transactional
     public void aggregateDaily() {
-        LocalDate yesterday = LocalDate.now().minusDays(1);
-
-        if (dailyStatsRepository.existsByStatsDate(yesterday)) {
-            log.info("[DailyStats] 이미 집계된 날짜입니다: {}", yesterday);
+        LocalDate today = LocalDate.now();
+        if (dailyStatsRepository.existsByStatDate(today)) {
+            log.info("[DailyStats] 오늘({}) 통계 이미 존재. 건너뜀.", today);
             return;
         }
 
-        LocalDateTime from = yesterday.atStartOfDay();
-        LocalDateTime to = yesterday.plusDays(1).atStartOfDay();
+        LocalDate yesterday   = today.minusDays(1);
+        LocalDateTime dayStart = yesterday.atStartOfDay();
+        LocalDateTime dayEnd   = today.atStartOfDay();
 
-        long newMembers    = memberRepository.countByInsertTimeBetween(from, to);
-        long newPenalties  = penaltyHistoryRepository.countByStatusAndCreatedAtBetween("APPLIED", from, to);
-        long totalInq      = inquiryRepository.countByCreatedAtBetween(from, to);
-        long answeredInq   = inquiryRepository.countByStatusAndCreatedAtBetween("ANSWERED", from, to);
+        long totalMembers    = memberRepository.count();
+        long newMembers      = memberRepository.findAll().stream()
+                .filter(m -> m.getInsertTime() != null
+                        && m.getInsertTime().isAfter(dayStart)
+                        && m.getInsertTime().isBefore(dayEnd))
+                .count();
+        long activeReviews   = reviewRepository.count();
+        long totalInquiries  = inquiryRepository.count();
+        long pendingInquiries = inquiryRepository.countByStatus("PENDING");
 
         DailyStats stats = DailyStats.builder()
-                .statsDate(yesterday)
+                .statDate(today)
+                .totalMembers(totalMembers)
                 .newMembers(newMembers)
-                .newReviews(0L)         // 리뷰 파트(P3)에서 추가 예정
-                .newPenalties(newPenalties)
-                .totalInquiries(totalInq)
-                .answeredInquiries(answeredInq)
-                .chatbotSessions(chatbotSessionRepository.countByCreatedAtBetween(from, to))
-                .totalTokens(0L)        // Gemini 응답에 토큰 수 미포함, 추후 Python 수정 시 반영
+                .activeReviews(activeReviews)
+                .totalInquiries(totalInquiries)
+                .pendingInquiries(pendingInquiries)
                 .build();
 
         dailyStatsRepository.save(stats);
-        log.info("[DailyStats] {} 집계 완료", yesterday);
+        log.info("[DailyStats] {} 집계 완료. 총 회원={}, 신규={}", today, totalMembers, newMembers);
     }
 
-    // 기간별 통계 조회 (대시보드용)
-    @Transactional(readOnly = true)
-    public List<DailyStats> getStats(LocalDate from, LocalDate to) {
-        return dailyStatsRepository.findByStatsDateBetweenOrderByStatsDateAsc(from, to);
+    /** 최근 30일 통계 목록 */
+    public List<DailyStatsDto.Response> getRecent30() {
+        return dailyStatsRepository.findTop30ByOrderByStatDateDesc()
+                .stream().map(this::toResponse).collect(Collectors.toList());
     }
 
-    // 특정 날짜 통계 조회
-    @Transactional(readOnly = true)
-    public DailyStats getStatsByDate(LocalDate date) {
-        return dailyStatsRepository.findByStatsDate(date)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "해당 날짜의 통계가 없습니다."));
+    /** 오늘 대시보드 요약 */
+    public DailyStatsDto.Summary getSummary() {
+        LocalDate today = LocalDate.now();
+        Optional<DailyStats> opt = dailyStatsRepository.findByStatDate(today);
+
+        if (opt.isEmpty()) {
+            // 아직 집계 전이면 실시간 간이 집계
+            return DailyStatsDto.Summary.builder()
+                    .today(today)
+                    .totalMembers(memberRepository.count())
+                    .newMembersToday(0L)
+                    .activeReviews(reviewRepository.count())
+                    .pendingInquiries(inquiryRepository.countByStatus("PENDING"))
+                    .build();
+        }
+
+        DailyStats s = opt.get();
+        return DailyStatsDto.Summary.builder()
+                .today(s.getStatDate())
+                .totalMembers(s.getTotalMembers())
+                .newMembersToday(s.getNewMembers())
+                .activeReviews(s.getActiveReviews())
+                .pendingInquiries(s.getPendingInquiries())
+                .build();
+    }
+
+    private DailyStatsDto.Response toResponse(DailyStats s) {
+        return DailyStatsDto.Response.builder()
+                .statId(s.getStatId())
+                .statDate(s.getStatDate())
+                .totalMembers(s.getTotalMembers())
+                .newMembers(s.getNewMembers())
+                .activeReviews(s.getActiveReviews())
+                .totalInquiries(s.getTotalInquiries())
+                .pendingInquiries(s.getPendingInquiries())
+                .insertTime(s.getInsertTime())
+                .build();
     }
 }

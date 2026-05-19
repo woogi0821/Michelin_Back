@@ -1,53 +1,63 @@
 package com.simplecoding.michelin_back.admin.controller;
 
 import com.simplecoding.michelin_back.admin.dto.PenaltyHistoryDto;
-import com.simplecoding.michelin_back.admin.entity.PenaltyHistory;
+import com.simplecoding.michelin_back.admin.repository.AdminRepository;
 import com.simplecoding.michelin_back.admin.service.PenaltyService;
 import com.simplecoding.michelin_back.common.ApiResponse;
+import com.simplecoding.michelin_back.common.CommonException;
 import com.simplecoding.michelin_back.common.CustomUserDetails;
-import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
+
 @RestController
-@RequestMapping("/api/admin/penalties")
+@RequestMapping("/api/admin")
 @RequiredArgsConstructor
-@PreAuthorize("isAuthenticated()")
+@PreAuthorize("hasAnyAuthority('A','S')")
 public class PenaltyController {
 
     private final PenaltyService penaltyService;
+    private final AdminRepository adminRepository;
 
-    // 특정 회원 패널티 내역
-    @GetMapping("/member/{memberId}")
-    public ResponseEntity<ApiResponse<Page<PenaltyHistory>>> getPenalties(
-            @PathVariable Long memberId,
-            @PageableDefault(size = 10, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
-        Page<PenaltyHistory> penalties = penaltyService.getPenalties(memberId, pageable);
-        return ResponseEntity.ok(new ApiResponse<>(true, "패널티 내역 조회 성공", penalties, (int) pageable.getOffset(), penalties.getTotalElements()));
+    @PostMapping("/penalties")
+    public ResponseEntity<ApiResponse<PenaltyHistoryDto.Response>> give(
+            @AuthenticationPrincipal CustomUserDetails user,
+            @RequestBody PenaltyHistoryDto.CreateRequest req) {
+        Long adminId = getAdminId(user.getMemberId());
+        return ResponseEntity.ok(ApiResponse.success(penaltyService.givePenalty(adminId, req)));
     }
 
-    // 패널티 부여
-    @PostMapping
-    public ResponseEntity<ApiResponse<PenaltyHistory>> givePenalty(
-            @AuthenticationPrincipal CustomUserDetails userDetails,
-            @Valid @RequestBody PenaltyHistoryDto.Request request) {
-        PenaltyHistory penalty = penaltyService.givePenalty(userDetails, request);
-        return ResponseEntity.ok(new ApiResponse<>(true, "패널티 부여 성공", penalty, 0, 1));
+    @DeleteMapping("/penalties/release/{memberId}")
+    public ResponseEntity<ApiResponse<Void>> release(
+            @AuthenticationPrincipal CustomUserDetails user,
+            @PathVariable Long memberId) {
+        Long adminId = getAdminId(user.getMemberId());
+        penaltyService.releaseSuspension(memberId, adminId);
+        return ResponseEntity.ok(ApiResponse.success("정지가 해제되었습니다."));
     }
 
-    // 패널티 취소
-    @PatchMapping("/{penaltyId}/revoke")
-    public ResponseEntity<ApiResponse<Void>> revokePenalty(
-            @AuthenticationPrincipal CustomUserDetails userDetails,
-            @PathVariable Long penaltyId) {
-        penaltyService.revokePenalty(userDetails, penaltyId);
-        return ResponseEntity.ok(new ApiResponse<>(true, "패널티 취소 성공", null, 0, 0));
+    @GetMapping("/penalties/member/{memberId}")
+    public ResponseEntity<ApiResponse<List<PenaltyHistoryDto.Response>>> memberPenalties(
+            @PathVariable Long memberId) {
+        return ResponseEntity.ok(ApiResponse.success(penaltyService.getMemberPenalties(memberId)));
+    }
+
+    @GetMapping("/penalties")
+    public ResponseEntity<ApiResponse<Page<PenaltyHistoryDto.Response>>> all(
+            @PageableDefault(size = 20) Pageable pageable) {
+        return ResponseEntity.ok(ApiResponse.success(penaltyService.getAll(pageable)));
+    }
+
+    private Long getAdminId(Long memberId) {
+        return adminRepository.findByMember_MemberId(memberId)
+                .orElseThrow(() -> CommonException.forbidden("관리자 권한이 없습니다."))
+                .getAdminId();
     }
 }

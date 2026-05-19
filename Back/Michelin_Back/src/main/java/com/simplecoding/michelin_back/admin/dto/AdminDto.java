@@ -1,25 +1,26 @@
 package com.simplecoding.michelin_back.admin.dto;
 
-import jakarta.validation.constraints.NotNull;
-import lombok.Builder;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
+import lombok.*;
 
 public class AdminDto {
 
     @Getter
-    @NoArgsConstructor
-    public static class Request{
-        @NotNull
+    @Builder
+    @NoArgsConstructor(access = AccessLevel.PROTECTED)
+    @AllArgsConstructor
+    public static class Response {
+        private Long adminId;
         private Long memberId;
+        private String loginId;
+        private String name;
         private String adminRole;
     }
 
     @Getter
-    @Builder
-    public static class Response{
-        private Long adminId;
-        private String memberName;
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class GrantRequest {
+        private Long memberId;
         private String adminRole;
     }
 }

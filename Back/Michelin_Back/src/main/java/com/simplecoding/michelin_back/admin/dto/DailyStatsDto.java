@@ -1,22 +1,37 @@
 package com.simplecoding.michelin_back.admin.dto;
 
-import lombok.Builder;
-import lombok.Getter;
+import lombok.*;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 public class DailyStatsDto {
 
     @Getter
     @Builder
+    @NoArgsConstructor(access = AccessLevel.PROTECTED)
+    @AllArgsConstructor
     public static class Response {
-        private LocalDateTime statsDate;
+        private Long statId;
+        private LocalDate statDate;
+        private Long totalMembers;
         private Long newMembers;
-        private Long newReviews;
-        private Long newPenalties;
+        private Long activeReviews;
         private Long totalInquiries;
-        private Long answeredInquiries;
-        private Long chatbotSessions;
-        private Long totalTokens;
+        private Long pendingInquiries;
+        private LocalDateTime insertTime;
+    }
+
+    /** 대시보드 요약용 */
+    @Getter
+    @Builder
+    @NoArgsConstructor(access = AccessLevel.PROTECTED)
+    @AllArgsConstructor
+    public static class Summary {
+        private LocalDate today;
+        private Long totalMembers;
+        private Long newMembersToday;
+        private Long activeReviews;
+        private Long pendingInquiries;
     }
 }

@@ -1,33 +1,41 @@
 package com.simplecoding.michelin_back.admin.dto;
 
-
-import jakarta.validation.constraints.NotBlank;
-import lombok.Builder;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
+import lombok.*;
 
 import java.time.LocalDateTime;
 
 public class NoticeDto {
 
     @Getter
-    @NoArgsConstructor
-    public static class Request{
-        @NotBlank
+    @Builder
+    @NoArgsConstructor(access = AccessLevel.PROTECTED)
+    @AllArgsConstructor
+    public static class Response {
+        private Long noticeId;
         private String title;
-        @NotBlank
         private String content;
-        private String fixYn = "N";
+        private String fixYn;
+        private String deletYn;
+        private Long writerId;
+        private LocalDateTime insertTime;
+        private LocalDateTime updateTime;
     }
 
     @Getter
-    @Builder
-    public static class ListResponse{
-        private Long noticeId;
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class CreateRequest {
         private String title;
+        private String content;
+        private String fixYn;  // "Y" or "N"
+    }
+
+    @Getter
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class UpdateRequest {
+        private String title;
+        private String content;
         private String fixYn;
-        private String writerName;
-        private LocalDateTime insertTime;
-        private LocalDateTime updateTime;
     }
 }

@@ -1,20 +1,32 @@
 package com.simplecoding.michelin_back.common;
 
-import lombok.AllArgsConstructor;
 import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
 
-// 목적: 리액트로 결과를 포장해서 보낼 클래스
-//  예) 결과배열, 현재페이지번호, 총개수, 성공메세지 또는 실패메세지, 추가)성공코드, 실패코드
 @Getter
-@Setter
-@NoArgsConstructor
-@AllArgsConstructor
 public class ApiResponse<T> {
-    private boolean success;  // 성공: true, 실패: false
-    private String message;   // 성공(실패) 메세지
-    private T result;         // 결과 배열: T 자료형(Dept, Emp, 등 임의의 클래스)
-    private int page;         // 현재페이지 번호
-    private long totalNumber; // 총개수
+
+    private final boolean success;
+    private final String message;
+    private final T data;
+
+    private ApiResponse(boolean success, String message, T data) {
+        this.success = success;
+        this.message = message;
+        this.data = data;
+    }
+
+    // 성공 (데이터 있음)
+    public static <T> ApiResponse<T> success(T data) {
+        return new ApiResponse<>(true, "success", data);
+    }
+
+    // 성공 (데이터 없음)
+    public static <T> ApiResponse<T> success(String message) {
+        return new ApiResponse<>(true, message, null);
+    }
+
+    // 실패
+    public static <T> ApiResponse<T> fail(String message) {
+        return new ApiResponse<>(false, message, null);
+    }
 }
