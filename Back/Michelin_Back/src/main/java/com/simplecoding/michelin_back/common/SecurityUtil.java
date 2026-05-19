@@ -1,21 +1,24 @@
-package com.simplecoding.chargerreservation.common;
+package com.simplecoding.michelin_back.common;
 
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 
-/**
- * 현재 SecurityContext에 저장된 로그인 유저의 ID를 반환합니다.
- */
 public class SecurityUtil {
+
     private SecurityUtil() {}
 
-    public static String getCurrentLoginId() {
-        final Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+    // 현재 로그인한 사용자 이메일 가져오기
+    public static String getCurrentEmail() {
+        Authentication authentication = SecurityContextHolder
+                .getContext()
+                .getAuthentication();
 
-        if (authentication == null || authentication.getName() == null) {
-            throw new RuntimeException("인증 정보가 없습니다. 로그인이 필요합니다.");
+        if (authentication == null || !authentication.isAuthenticated()) {
+            throw new CommonException(
+                    org.springframework.http.HttpStatus.UNAUTHORIZED,
+                    "로그인이 필요합니다."
+            );
         }
-
         return authentication.getName();
     }
 }
