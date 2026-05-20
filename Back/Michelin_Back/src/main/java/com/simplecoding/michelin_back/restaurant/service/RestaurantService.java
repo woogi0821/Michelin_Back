@@ -79,9 +79,16 @@ public class RestaurantService {
     // ── P2 - 음식점 상세 조회 (viewCount +1) ────────────────────────────
     @Transactional
     public RestaurantResponseDto getDetail(Long id) {
+        // 1. 음식점 조회 (이미지까지 한 번에 가져와야 합니다)
+        // repository에서 findById로 이미지를 가져오지 못한다면,
+        // 엔티티 매핑에서 @OneToMany(fetch = FetchType.EAGER) 설정을 확인하세요.
         Restaurant restaurant = restaurantRepository.findById(id)
                 .orElseThrow(() -> new CommonException(HttpStatus.NOT_FOUND, "음식점을 찾을 수 없습니다."));
+
+        // 2. 조회수 증가
         restaurant.increaseViewCount();
+
+        // 3. DTO 생성 (이미지 처리는 DTO 생성자 내부에서 이미 수행됨)
         return new RestaurantResponseDto(restaurant);
     }
 
