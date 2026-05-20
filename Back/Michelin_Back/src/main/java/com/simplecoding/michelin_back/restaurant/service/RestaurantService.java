@@ -18,7 +18,9 @@ import org.springframework.data.jpa.domain.Specification;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -29,6 +31,7 @@ import java.util.stream.Collectors;
 public class RestaurantService {
 
     private final RestaurantRepository restaurantRepository;
+    private final RestaurantImageService restaurantImageService; // 이미지 서비스 주입
 
     // ── P2 - 음식점 목록 조회 (필터 + 페이지네이션 + 키워드) ────────────
     public Page<RestaurantResponseDto> getList(RestaurantSearchDto searchDto) {
@@ -82,9 +85,9 @@ public class RestaurantService {
         return new RestaurantResponseDto(restaurant);
     }
 
-    // ── P2 - 음식점 등록 ─────────────────────────────────────────────────
+    // ── P2 - 음식점 등록 (이미지 포함) ──────────────────────────────────
     @Transactional
-    public RestaurantResponseDto create(RestaurantRequestDto requestDto) {
+    public RestaurantResponseDto create(RestaurantRequestDto requestDto, List<MultipartFile> files) throws IOException {
         Restaurant restaurant = Restaurant.builder()
                 .restaurantName(requestDto.getRestaurantName())
                 .grade(requestDto.getGrade())
@@ -99,14 +102,28 @@ public class RestaurantService {
                 .phone(requestDto.getPhone())
                 .category(requestDto.getCategory())
                 .build();
-        return new RestaurantResponseDto(restaurantRepository.save(restaurant));
+
+        restaurantRepository.save(restaurant);
+
+        // 이미지 파일 업로드 처리 (제공해주신 서비스 로직 활용)
+        if (files != null && !files.isEmpty()) {
+            for (int i = 0; i < files.size(); i++) {
+                boolean isMain = (i == 0); // 첫 번째 이미지를 대표 이미지로 지정
+                restaurantImageService.uploadImage(restaurant.getId(), files.get(i), isMain);
+            }
+        }
+        return new RestaurantResponseDto(restaurant);
     }
 
-    // ── P2 - 음식점 수정 ✅ kakaoPlaceId 추가 ───────────────────────────
+    // ── P2 - 음식점 수정 (정보 및 이미지 수정/삭제 포함) ──────────────────
     @Transactional
-    public RestaurantResponseDto update(Long id, RestaurantRequestDto requestDto) {
+    public RestaurantResponseDto update(Long id, RestaurantRequestDto requestDto,
+                                        List<MultipartFile> newFiles,
+                                        List<Long> deleteImageIds) throws IOException {
         Restaurant restaurant = restaurantRepository.findById(id)
                 .orElseThrow(() -> new CommonException(HttpStatus.NOT_FOUND, "음식점을 찾을 수 없습니다."));
+
+        // 1. 기본 정보 수정
         restaurant.update(
                 requestDto.getRestaurantName(),
                 requestDto.getCity(),
@@ -121,15 +138,31 @@ public class RestaurantService {
                 requestDto.getKakaoPlaceId(),  // ✅ 추가
                 requestDto.getCategory()
         );
+
+        // 2. 삭제할 이미지 처리
+        if (deleteImageIds != null) {
+            for (Long imageId : deleteImageIds) {
+                restaurantImageService.deleteImage(imageId);
+            }
+        }
+
+        // 3. 새로 추가할 이미지 처리
+        if (newFiles != null) {
+            for (MultipartFile file : newFiles) {
+                restaurantImageService.uploadImage(restaurant.getId(), file, false);
+            }
+        }
         return new RestaurantResponseDto(restaurant);
     }
 
-    // ── P2 - 음식점 삭제 ─────────────────────────────────────────────────
+    // ── P2 - 음식점 삭제 (Soft Delete) ──────────────────────────────────
     @Transactional
     public void delete(Long id) {
         Restaurant restaurant = restaurantRepository.findById(id)
                 .orElseThrow(() -> new CommonException(HttpStatus.NOT_FOUND, "음식점을 찾을 수 없습니다."));
-        restaurantRepository.delete(restaurant);
+
+        // 상태값만 'DELETED'로 변경
+        restaurant.softDelete();
     }
 
     // ── P2 - 검색 자동완성 ───────────────────────────────────────────────

@@ -62,4 +62,6 @@ public class Notification {
     public void markAsRead() {
         this.isRead = "Y";
     }
+
+//    properties오류 제거
 }
