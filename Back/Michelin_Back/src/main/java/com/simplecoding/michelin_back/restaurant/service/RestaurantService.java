@@ -108,6 +108,7 @@ public class RestaurantService {
                 .kakaoPlaceId(requestDto.getKakaoPlaceId())
                 .phone(requestDto.getPhone())
                 .category(requestDto.getCategory())
+                .status("ACTIVE")  // ✅ 이거 추가
                 .build();
 
         restaurantRepository.save(restaurant);
