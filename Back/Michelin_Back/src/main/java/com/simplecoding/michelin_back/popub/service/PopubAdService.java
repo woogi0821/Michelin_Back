@@ -21,10 +21,6 @@ public class PopubAdService {
 
     private final PopubAdRepository popubAdRepository;
 
-    // application.properties에 설정한 리액트 public/popup/ 경로 주입
-    @Value("${image.popup-dir}")
-    private String popupDir;
-
     // 생성자 주입
     public PopubAdService(PopubAdRepository popubAdRepository) {
         this.popubAdRepository = popubAdRepository;
@@ -91,17 +87,9 @@ public class PopubAdService {
         PopupAd popupAd = popubAdRepository.findById(adId)
                 .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 광고 번호입니다. ID: " + adId));
 
-        // 1. 📂 리액트 폴더에 저장된 실제 이미지 파일도 찾아가서 지우기
-        if (popupAd.getImageUrl() != null && popupAd.getImageUrl().startsWith("/popup/")) {
-            // "/popup/파일명.jpg"에서 파일명만 쏙 추출
-            String fileName = popupAd.getImageUrl().substring("/popup/".length());
-            File file = new File(popupDir + fileName);
-            if (file.exists()) {
-                file.delete(); // 실제 파일 삭제!
-            }
-        }
+        // 📂 파일 삭제 로직을 통째로 삭제하세요!
 
-        // 2. 🗄️ 오라클 DB 데이터 삭제
+        // 🗄️ 오라클 DB 데이터 삭제만 남깁니다.
         popubAdRepository.delete(popupAd);
     }
 }

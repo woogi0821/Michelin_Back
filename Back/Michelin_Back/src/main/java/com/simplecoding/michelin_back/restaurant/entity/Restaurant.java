@@ -65,6 +65,9 @@ public class Restaurant {
     @Column(name = "UPDATED_AT")
     private LocalDateTime updatedAt;
 
+    @Column(name = "STATUS")
+    private String status = "ACTIVE"; // "ACTIVE" 혹은 "DELETED"만 들어와야 함
+
     @OneToMany(mappedBy = "restaurant", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private List<RestaurantImage> images = new ArrayList<>();
 
@@ -100,5 +103,9 @@ public class Restaurant {
         this.lng = lng;
         this.kakaoPlaceUrl = kakaoPlaceUrl;
         this.category = category;
+    }
+    // Restaurant.java 클래스 내부 아래쪽에 추가하세요
+    public void softDelete() {
+        this.status = "DELETED";
     }
 }

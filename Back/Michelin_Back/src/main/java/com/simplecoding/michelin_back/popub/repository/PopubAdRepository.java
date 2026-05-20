@@ -18,7 +18,8 @@ public interface PopubAdRepository extends JpaRepository<PopupAd, Long> {
     @Query(value = "SELECT * FROM (" +
             "    SELECT * FROM POPUP_AD " +
             "    WHERE IS_ACTIVE = 'Y' " +
-            "      AND SYSDATE BETWEEN START_DATE AND END_DATE " +
+            "      AND SYSDATE >= START_DATE " +
+            "      AND SYSDATE < END_DATE + 1 " +  // 💡 여기에 +1을 해서 종료일 다음날 0시 직전까지 포함시킵니다.
             "    ORDER BY REG_DATE DESC" +
             ") WHERE ROWNUM = 1", nativeQuery = true)
     Optional<PopupAd> findActivePopupAd();
