@@ -15,9 +15,13 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
+import java.util.HashMap;
+import java.util.Map;
+
 
 import java.io.IOException;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Slf4j
 @RestController
@@ -82,8 +86,17 @@ public class RestaurantController {
     }
 
     @GetMapping("/{id}/images")
-    public ResponseEntity<ApiResponse<List<RestaurantImage>>> getImages(@PathVariable Long id) {
-        return ResponseEntity.ok(ApiResponse.success(restaurantImageService.getImages(id)));
+    public ResponseEntity<ApiResponse<List<Map<String, Object>>>> getImages(@PathVariable Long id) {
+        List<Map<String, Object>> result = restaurantImageService.getImages(id).stream()
+                .map(img -> {
+                    Map<String, Object> map = new HashMap<>();
+                    map.put("id", img.getId());
+                    map.put("imageUrl", img.getImageUrl());
+                    map.put("isMain", img.getIsMain());
+                    return map;
+                })
+                .collect(Collectors.toList());
+        return ResponseEntity.ok(ApiResponse.success(result));
     }
 
     // ── 마커 / 검색 / 자동완성 API ───────────────────────────────

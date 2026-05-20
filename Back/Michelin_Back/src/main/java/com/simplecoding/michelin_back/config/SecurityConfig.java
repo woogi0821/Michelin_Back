@@ -43,7 +43,13 @@ public class SecurityConfig {
                         // 음식점 조회 (공개)
                         .requestMatchers(
                                 "/api/restaurants",
-                                "/api/restaurants/**"
+                                "/api/restaurants/**",
+                                "/restaurants/**" // ✅ 이 줄이 꼭 있어야 합니다!
+                        ).permitAll()
+                        // 💡 [추가] 팝업 광고 API 공개 허용
+                        .requestMatchers(
+                                "/api/v1/ads",
+                                "/api/v1/ads/**"
                         ).permitAll()
                         // 이미지 (공개)
                         .requestMatchers("/images/**").permitAll()
