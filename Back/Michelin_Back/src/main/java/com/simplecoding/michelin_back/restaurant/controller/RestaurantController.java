@@ -26,9 +26,9 @@ import java.util.List;
 public class RestaurantController {
 
     private final RestaurantService restaurantService;
-    private final RestaurantImageService restaurantImageService; // 이미지 서비스 추가
+    private final RestaurantImageService restaurantImageService;
 
-    // ── P2 - 기존 식당 관련 API들 ──────────────────────────────
+    // ── P2 - 식당 관련 API ──────────────────────────────────────
     @GetMapping
     public ResponseEntity<ApiResponse<Page<RestaurantResponseDto>>> getList(RestaurantSearchDto searchDto) {
         return ResponseEntity.ok(ApiResponse.success(restaurantService.getList(searchDto)));
@@ -61,9 +61,8 @@ public class RestaurantController {
         return ResponseEntity.ok(ApiResponse.success("음식점이 삭제되었습니다."));
     }
 
-    // ── 통합된 이미지 관련 API들 (RestaurantImageController에서 이동) ──────────────
+    // ── 이미지 관련 API ──────────────────────────────────────────
 
-    // 이미지 개별 업로드
     @PostMapping(value = "/{id}/images", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<ApiResponse<String>> uploadImage(
             @PathVariable Long id,
@@ -72,27 +71,31 @@ public class RestaurantController {
         return ResponseEntity.ok(ApiResponse.success(restaurantImageService.uploadImage(id, file, isMain)));
     }
 
-    // 이미지 삭제
+    // ✅ [STEP 5] {id} 파라미터 추가 - 미사용 path variable 정리
     @DeleteMapping("/{id}/images/{imageId}")
-    public ResponseEntity<ApiResponse<String>> deleteImage(@PathVariable Long imageId) {
+    public ResponseEntity<ApiResponse<String>> deleteImage(
+            @PathVariable Long id,
+            @PathVariable Long imageId) {
+        log.info("[이미지 삭제] restaurantId={}, imageId={}", id, imageId);
         restaurantImageService.deleteImage(imageId);
         return ResponseEntity.ok(ApiResponse.success("이미지가 삭제되었습니다."));
     }
 
-    // 이미지 목록 조회
     @GetMapping("/{id}/images")
     public ResponseEntity<ApiResponse<List<RestaurantImage>>> getImages(@PathVariable Long id) {
         return ResponseEntity.ok(ApiResponse.success(restaurantImageService.getImages(id)));
     }
 
-    // ── 기존 마커/검색 API ───────────────────────────────────────────────
+    // ── 마커 / 검색 / 자동완성 API ───────────────────────────────
     @GetMapping("/autocomplete")
     public ResponseEntity<ApiResponse<List<RestaurantResponseDto>>> getAutocomplete(@RequestParam String keyword) {
         return ResponseEntity.ok(ApiResponse.success(restaurantService.getAutocomplete(keyword)));
     }
 
     @GetMapping("/markers")
-    public ResponseEntity<List<MarkerDto>> getMarkers(@RequestParam(name = "lat") Double lat, @RequestParam(name = "lng") Double lng) {
+    public ResponseEntity<List<MarkerDto>> getMarkers(
+            @RequestParam(name = "lat") Double lat,
+            @RequestParam(name = "lng") Double lng) {
         return ResponseEntity.ok(restaurantService.getRestaurantMarkers(lat, lng));
     }
 
