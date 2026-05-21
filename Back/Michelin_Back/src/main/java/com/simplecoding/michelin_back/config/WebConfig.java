@@ -18,8 +18,8 @@ public class WebConfig implements WebMvcConfigurer {
     // /images/** → file:///C:/images/ (uploadDir 변수 사용)
     @Override
     public void addResourceHandlers(ResourceHandlerRegistry registry) {
-        registry.addResourceHandler("/images/**")
-                .addResourceLocations("file:///" + uploadDir);
+        registry.addResourceHandler("/restaurants/**")
+                .addResourceLocations("file:C:/Work/restaurants/");
     }
 
 }

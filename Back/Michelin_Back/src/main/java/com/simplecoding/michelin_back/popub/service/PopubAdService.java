@@ -86,9 +86,6 @@ public class PopubAdService {
     public void deletePopupAd(Long adId) {
         PopupAd popupAd = popubAdRepository.findById(adId)
                 .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 광고 번호입니다. ID: " + adId));
-
-        // 📂 파일 삭제 로직을 통째로 삭제하세요!
-
         // 🗄️ 오라클 DB 데이터 삭제만 남깁니다.
         popubAdRepository.delete(popupAd);
     }

@@ -41,6 +41,12 @@ public class SecurityConfig {
                                 "/api-docs/**"
                         ).permitAll()
                         // 음식점 조회 (공개)
+
+                        // 💡 [여기에 추가!] 공지사항 관련 API 모두 허용
+                        .requestMatchers(
+                                "/api/notices",
+                                "/api/notices/**"
+                        ).permitAll()
                         .requestMatchers(
                                 "/api/restaurants",
                                 "/api/restaurants/**",
