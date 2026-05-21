@@ -26,10 +26,11 @@ public class RestaurantImageService {
     private final RestaurantRepository restaurantRepository;
     private final RestaurantImageRepository restaurantImageRepository;
 
-    @Value("${image.restaurant-dir}")
+    // ✅ 기본값 추가 - local 프로파일 없어도 기동 가능
+    @Value("${image.restaurant-dir:C:/images/restaurants/}")
     private String restaurantDir;
 
-    @Value("${image.base-url}")
+    @Value("${image.base-url:http://localhost:8080/images/}")
     private String baseUrl;
 
     // 이미지 업로드

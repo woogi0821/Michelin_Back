@@ -1,19 +1,14 @@
 package com.simplecoding.michelin_back.config;
 
-import com.simplecoding.michelin_back.common.jwt.CustomOAuth2UserService;
-import com.simplecoding.michelin_back.common.jwt.JwtAuthenticationFilter;
-import com.simplecoding.michelin_back.common.jwt.JwtTokenProvider;
-import com.simplecoding.michelin_back.common.jwt.OAuth2SuccessHandler;
+import com.simplecoding.michelin_back.security.JwtAuthenticationFilter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.web.cors.CorsConfiguration;
@@ -24,18 +19,10 @@ import java.util.List;
 
 @Configuration
 @EnableWebSecurity
-@EnableMethodSecurity
 @RequiredArgsConstructor
 public class SecurityConfig {
 
-    private final JwtTokenProvider jwtTokenProvider;
-    private final OAuth2SuccessHandler oAuth2SuccessHandler;
-    private final CustomOAuth2UserService customOAuth2UserService;
-
-    @Bean
-    public PasswordEncoder passwordEncoder() {
-        return new BCryptPasswordEncoder();
-    }
+    private final JwtAuthenticationFilter jwtAuthenticationFilter;
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
@@ -45,29 +32,36 @@ public class SecurityConfig {
                 .sessionManagement(session ->
                         session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
+                        // ── 공개 허용 ───────────────────────────────
                         .requestMatchers(
-                                "/api/auth/**",
-                                "/oauth2/**",
-                                "/login/oauth2/**",
-                                "/api/restaurant/**",
-                                "/api/notices",
-                                "/api/notices/**",
+                                "/swagger-ui.html",
                                 "/swagger-ui/**",
+                                "/v3/api-docs",
                                 "/v3/api-docs/**",
-                                "/swagger-ui.html"
+                                "/api-docs/**"
                         ).permitAll()
-                        .requestMatchers("/api/admin/**").hasAnyAuthority("A", "S")
+                        // 음식점 조회 (공개)
+                        .requestMatchers(
+                                "/api/restaurants",
+                                "/api/restaurants/**",
+                                "/restaurants/**" // ✅ 이 줄이 꼭 있어야 합니다!
+                        ).permitAll()
+                        // 💡 [추가] 팝업 광고 API 공개 허용
+                        .requestMatchers(
+                                "/api/v1/ads",
+                                "/api/v1/ads/**"
+                        ).permitAll()
+                        // 이미지 (공개)
+                        .requestMatchers("/images/**").permitAll()
+                        // 로그인/회원가입 (공개)
+                        .requestMatchers("/api/auth/**").permitAll()
+                        // 리뷰 조회 GET만 공개 ✅ HttpMethod.GET 으로 수정
+                        .requestMatchers(HttpMethod.GET, "/api/reviews/**").permitAll()
+                        // ── 인증 필요 ───────────────────────────────
                         .anyRequest().authenticated()
                 )
-                .oauth2Login(oauth2 -> oauth2
-                        .userInfoEndpoint(userInfo ->
-                                userInfo.userService(customOAuth2UserService))
-                        .successHandler(oAuth2SuccessHandler)
-                )
-                .addFilterBefore(
-                        new JwtAuthenticationFilter(jwtTokenProvider),
-                        UsernamePasswordAuthenticationFilter.class
-                );
+                // ✅ JWT 필터 연결
+                .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
     }
