@@ -3,6 +3,8 @@ package com.simplecoding.michelin_back.restaurant.dto;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
+import java.util.List;
+
 @Getter
 @NoArgsConstructor
 public class RestaurantRequestDto {
@@ -19,4 +21,5 @@ public class RestaurantRequestDto {
     private String kakaoPlaceId;
     private String phone;
     private String category; // ✅ P4 연동을 위해 추가
+    private List<String> imageUrls;
 }

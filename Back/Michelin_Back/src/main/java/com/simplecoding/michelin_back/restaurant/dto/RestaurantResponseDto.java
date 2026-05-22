@@ -1,6 +1,7 @@
 package com.simplecoding.michelin_back.restaurant.dto;
 
 import com.simplecoding.michelin_back.restaurant.entity.Restaurant;
+import com.simplecoding.michelin_back.restaurant.entity.RestaurantImage;
 import lombok.Getter;
 
 import java.time.LocalDateTime;
@@ -47,13 +48,18 @@ public class RestaurantResponseDto {
         this.updatedAt = restaurant.getUpdatedAt();
         this.distance = null;
 
-        this.mainImageUrl = restaurant.getImages().stream()
+        // ✅ null 체크 추가
+        List<RestaurantImage> images = restaurant.getImages() != null
+                ? restaurant.getImages()
+                : List.of();
+
+        this.mainImageUrl = images.stream()
                 .filter(img -> "Y".equals(img.getIsMain()))
                 .map(img -> img.getImageUrl())
                 .findFirst()
                 .orElse(null);
 
-        this.imageUrls = restaurant.getImages().stream()
+        this.imageUrls = images.stream()
                 .map(img -> img.getImageUrl())
                 .collect(Collectors.toList());
     }
