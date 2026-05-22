@@ -2,7 +2,7 @@ package com.simplecoding.michelin_back.auth.service;
 
 import com.simplecoding.michelin_back.auth.dto.AuthDto;
 import com.simplecoding.michelin_back.common.CommonException;
-import com.simplecoding.michelin_back.security.JwtTokenProvider;
+import com.simplecoding.michelin_back.common.jwt.JwtTokenProvider;
 import com.simplecoding.michelin_back.member.entity.Member;
 import com.simplecoding.michelin_back.member.repository.MemberRepository;
 import lombok.RequiredArgsConstructor;
@@ -35,7 +35,7 @@ public class MemberService {
         }
 
         return AuthDto.LoginResponse.builder()
-                .accessToken(jwtTokenProvider.createAccessToken(member.getLoginId()))
+                .accessToken(jwtTokenProvider.createAccessToken(member))
                 .tokenType("Bearer")
                 .memberGrade(member.getMemberGrade())
                 .build();

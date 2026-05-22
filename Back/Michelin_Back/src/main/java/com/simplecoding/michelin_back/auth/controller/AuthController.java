@@ -5,7 +5,7 @@ import com.simplecoding.michelin_back.auth.service.EmailService;
 import com.simplecoding.michelin_back.auth.service.MemberService;
 import com.simplecoding.michelin_back.common.ApiResponse;
 import com.simplecoding.michelin_back.common.CommonException;
-import com.simplecoding.michelin_back.security.JwtTokenProvider;
+import com.simplecoding.michelin_back.common.jwt.JwtTokenProvider;
 import com.simplecoding.michelin_back.member.entity.Member;
 import com.simplecoding.michelin_back.member.repository.MemberRepository;
 import jakarta.servlet.http.Cookie;
@@ -95,7 +95,7 @@ public class AuthController {
         Member member = memberRepository.findByLoginId(loginId)
                 .orElseThrow(() -> CommonException.notFound("회원을 찾을 수 없습니다."));
 
-        String newAccessToken = jwtTokenProvider.createAccessToken(member.getLoginId());
+        String newAccessToken = jwtTokenProvider.createAccessToken(member);
 
         return ResponseEntity.ok(ApiResponse.success(
                 AuthDto.TokenResponse.builder()
