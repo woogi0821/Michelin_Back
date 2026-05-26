@@ -29,6 +29,7 @@ public class RestaurantResponseDto {
     private String mainImageUrl;
     private List<String> imageUrls;
     private Double distance;
+    private String category; // ✅ 추가
 
     public RestaurantResponseDto(Restaurant restaurant) {
         this.id = restaurant.getId();
@@ -47,8 +48,8 @@ public class RestaurantResponseDto {
         this.createdAt = restaurant.getCreatedAt();
         this.updatedAt = restaurant.getUpdatedAt();
         this.distance = null;
+        this.category = restaurant.getCategory(); // ✅ 추가
 
-        // ✅ null 체크 추가
         List<RestaurantImage> images = restaurant.getImages() != null
                 ? restaurant.getImages()
                 : List.of();
@@ -64,7 +65,6 @@ public class RestaurantResponseDto {
                 .collect(Collectors.toList());
     }
 
-    // 거리 세팅용 생성자
     public void setDistance(Double distance) {
         this.distance = distance;
     }
