@@ -56,7 +56,8 @@ public class SecurityConfig {
                         .requestMatchers(
                                 "/api/restaurants",
                                 "/api/restaurants/**",
-                                "/images/**"
+                                "/images/**",
+                                "/restaurants/**"
                         ).permitAll()
                         .requestMatchers(
                                 "/api/v1/ads",
