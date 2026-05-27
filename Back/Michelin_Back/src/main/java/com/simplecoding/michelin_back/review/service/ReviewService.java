@@ -84,35 +84,57 @@ public class ReviewService {
         RestaurantReview review = reviewRepository.findById(reviewId)
                 .orElseThrow(() -> new IllegalArgumentException("리뷰가 존재하지 않습니다."));
 
+        // 자기 리뷰에 자기가 반응하는 것 차단
+        if (memberId.equals(review.getMemberId())) {
+            throw new IllegalArgumentException("본인 리뷰에는 반응을 남길 수 없습니다.");
+        }
+
         Optional<ReviewReaction> existingReaction = reactionRepository.findByMemberIdAndReview(memberId, review);
+
+        boolean likeAdded = false; // 좋아요가 실제로 추가됐는지 추적
 
         if (existingReaction.isPresent()) {
             ReviewReaction reaction = existingReaction.get();
             if (reaction.getReactionType().equals(type)) {
+                // 같은 타입 → 취소
                 reactionRepository.delete(reaction);
             } else {
+                // 다른 타입으로 변경
                 reaction.setReactionType(type);
+                if ("LIKE".equals(type)) likeAdded = true;
             }
         } else {
+            // 새 반응 추가
             ReviewReaction newReaction = ReviewReaction.builder()
                     .review(review)
                     .memberId(memberId)
                     .reactionType(type)
                     .build();
             reactionRepository.save(newReaction);
+            if ("LIKE".equals(type)) likeAdded = true;
         }
 
         // 3. 토글 후 현재 카운트 조회
         long likeCount    = reactionRepository.countByReviewAndReactionType(review, "LIKE");
         long dislikeCount = reactionRepository.countByReviewAndReactionType(review, "DISLIKE");
 
-        // 4. 리뷰 작성자에게만 개인 알림 (JSON)
+        // 4. 카운트 실시간 동기화 (리뷰 작성자에게 SSE 전송)
         Map<String, Object> payload = new HashMap<>();
-        payload.put("reviewId",    reviewId);
-        payload.put("likeCount",   likeCount);
+        payload.put("reviewId",     reviewId);
+        payload.put("likeCount",    likeCount);
         payload.put("dislikeCount", dislikeCount);
-
         sseEmitters.send(review.getMemberId(), payload);
+
+        // 5. LIKE가 추가된 경우에만 알림 생성 (DB 저장 + SSE 알림 패널)
+        if (likeAdded) {
+            Member receiver = memberRepository.findById(review.getMemberId())
+                    .orElse(null);
+            Member sender = memberRepository.findById(memberId)
+                    .orElse(null);
+            if (receiver != null && sender != null) {
+                notificationService.sendLikeAlert(receiver, sender, reviewId);
+            }
+        }
     }
 
     /**
