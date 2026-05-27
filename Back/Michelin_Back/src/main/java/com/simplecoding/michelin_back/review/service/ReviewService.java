@@ -1,7 +1,11 @@
 package com.simplecoding.michelin_back.review.service;
 
+import com.simplecoding.michelin_back.member.entity.Member;
+import com.simplecoding.michelin_back.member.repository.MemberRepository;
+import com.simplecoding.michelin_back.notification.service.NotificationService;
 import com.simplecoding.michelin_back.notification.sse.SseEmitters; // SSE 주입
 import com.simplecoding.michelin_back.review.dto.ReviewRequestDto;
+import com.simplecoding.michelin_back.review.dto.ReviewResponseDto;
 import com.simplecoding.michelin_back.review.entity.RestaurantReview;
 import com.simplecoding.michelin_back.review.entity.ReviewReaction;
 import com.simplecoding.michelin_back.review.repository.RestaurantReviewRepository;
@@ -10,7 +14,9 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -20,18 +26,21 @@ public class ReviewService {
     private final RestaurantReviewRepository reviewRepository;
     private final ReviewReactionRepository reactionRepository;
     private final SseEmitters sseEmitters; // 1. SSE 이미터 주입 추가
+    private final MemberRepository memberRepository; // ✅ 추가된 의존성
+    private final NotificationService notificationService;
 
     /**
      * 1. 리뷰 및 답글 등록
      */
     @Transactional
     public Long createReview(ReviewRequestDto dto) {
+        // 1. 빌더 설정
         RestaurantReview.RestaurantReviewBuilder builder = RestaurantReview.builder()
                 .restaurantId(dto.getRestaurantId())
                 .memberId(dto.getMemberId())
                 .content(dto.getContent())
                 .rating(dto.getRating())
-                .isDeleted("N"); // 기본값 명시
+                .isDeleted("N");
 
         if (dto.getParentReviewId() != null) {
             RestaurantReview parent = reviewRepository.findById(dto.getParentReviewId())
@@ -39,10 +48,11 @@ public class ReviewService {
             builder.parent(parent);
         }
 
+        // 2. 저장과 동시에 savedId에 값을 바로 할당 (이러면 빨간 줄이 사라집니다)
         Long savedId = reviewRepository.save(builder.build()).getReviewId();
 
-        // [선택] 리뷰 등록 시에도 실시간 알림을 보내고 싶다면 추가
-        // sseEmitters.broadcast("review_create", dto.getRestaurantId());
+        // 3. 이제 여기서 savedId를 마음껏 써도 됩니다.
+        sseEmitters.broadcast("review_update", "newReview:" + savedId);
 
         return savedId;
     }
@@ -100,5 +110,15 @@ public class ReviewService {
     public Double getAverageRating(Long restaurantId) {
         Double avg = reviewRepository.getAverageRating(restaurantId);
         return (avg != null) ? Math.round(avg * 10) / 10.0 : 0.0;
+    }
+
+    /**
+     * 5. 식당별 리뷰 목록 조회
+     */
+    public List<ReviewResponseDto> getReviews(Long restaurantId) {
+        return reviewRepository.findByRestaurantIdAndIsDeletedAndParentIsNullOrderByCreatedAtDesc(restaurantId, "N")
+                .stream()
+                .map(ReviewResponseDto::new)
+                .collect(Collectors.toList());
     }
 }

@@ -1,8 +1,11 @@
 package com.simplecoding.michelin_back.review.dto;
 
+import com.simplecoding.michelin_back.review.entity.RestaurantReview;
+import com.simplecoding.michelin_back.review.entity.ReviewReaction;
 import lombok.*;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Getter
 @Setter
@@ -16,11 +19,31 @@ public class ReviewResponseDto {
     private Integer rating;
     private String isDeleted;
     private LocalDateTime createdAt;
-
-    // 좋아요 / 싫어요 개수 (화면에 바로 표시하기 위함)
     private long likeCount;
     private long dislikeCount;
-
-    // 답글 목록 (대댓글 구조를 위해 자기 자신을 리스트로 가짐)
     private List<ReviewResponseDto> children;
+
+    // ✅ 엔티티 → DTO 변환 생성자
+    public ReviewResponseDto(RestaurantReview review) {
+        this.reviewId = review.getReviewId();
+        this.memberId = review.getMemberId();
+        this.content = review.getContent();
+        this.rating = review.getRating();
+        this.isDeleted = review.getIsDeleted();
+        this.createdAt = review.getCreatedAt();
+
+        // 좋아요/싫어요 개수
+        this.likeCount = review.getReactions().stream()
+                .filter(r -> "LIKE".equals(r.getReactionType()))
+                .count();
+        this.dislikeCount = review.getReactions().stream()
+                .filter(r -> "DISLIKE".equals(r.getReactionType()))
+                .count();
+
+        // 삭제되지 않은 답글만 포함
+        this.children = review.getChildren().stream()
+                .filter(child -> "N".equals(child.getIsDeleted()))
+                .map(ReviewResponseDto::new)
+                .collect(Collectors.toList());
+    }
 }
