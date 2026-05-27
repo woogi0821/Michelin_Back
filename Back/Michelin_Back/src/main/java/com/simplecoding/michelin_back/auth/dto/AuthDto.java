@@ -27,6 +27,7 @@ public class AuthDto {
     @Getter
     @Builder
     public static class LoginResponse {
+        private Long memberId;
         private String accessToken;
         private String tokenType;
         private String memberGrade;

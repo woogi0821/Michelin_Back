@@ -35,6 +35,7 @@ public class MemberService {
         }
 
         return AuthDto.LoginResponse.builder()
+                .memberId(member.getMemberId())
                 .accessToken(jwtTokenProvider.createAccessToken(member))
                 .tokenType("Bearer")
                 .memberGrade(member.getMemberGrade())
