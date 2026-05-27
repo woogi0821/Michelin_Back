@@ -5,6 +5,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
 import java.time.Duration;
@@ -21,6 +22,7 @@ public class EmailService {
     private static final long TTL_SECONDS = 180; // 3분
 
     /** 이메일로 6자리 인증코드 발송 후 Redis에 저장 */
+    @Async
     public void sendCode(String email) {
         String code = String.format("%06d", new Random().nextInt(1_000_000));
         redisTemplate.opsForValue().set(PREFIX + email, code, Duration.ofSeconds(TTL_SECONDS));
