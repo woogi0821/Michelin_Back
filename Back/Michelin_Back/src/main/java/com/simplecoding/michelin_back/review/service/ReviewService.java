@@ -14,7 +14,9 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
@@ -100,8 +102,17 @@ public class ReviewService {
             reactionRepository.save(newReaction);
         }
 
-        // 3. 좋아요 변경 시에도 실시간으로 숫자를 갱신해주고 싶다면 브로드캐스트 호출
-        sseEmitters.broadcast("review_update", "reactionChanged:" + reviewId);
+        // 3. 토글 후 현재 카운트 조회
+        long likeCount    = reactionRepository.countByReviewAndReactionType(review, "LIKE");
+        long dislikeCount = reactionRepository.countByReviewAndReactionType(review, "DISLIKE");
+
+        // 4. 리뷰 작성자에게만 개인 알림 (JSON)
+        Map<String, Object> payload = new HashMap<>();
+        payload.put("reviewId",    reviewId);
+        payload.put("likeCount",   likeCount);
+        payload.put("dislikeCount", dislikeCount);
+
+        sseEmitters.send(review.getMemberId(), payload);
     }
 
     /**
