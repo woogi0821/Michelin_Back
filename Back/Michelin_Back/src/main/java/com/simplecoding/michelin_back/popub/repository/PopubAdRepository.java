@@ -23,4 +23,6 @@ public interface PopubAdRepository extends JpaRepository<PopupAd, Long> {
             "    ORDER BY REG_DATE DESC" +
             ") WHERE ROWNUM = 1", nativeQuery = true)
     Optional<PopupAd> findActivePopupAd();
+
+    long countByIsActive(String isActive);
 }
