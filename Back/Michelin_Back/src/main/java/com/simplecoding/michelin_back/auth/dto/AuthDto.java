@@ -69,4 +69,13 @@ public class AuthDto {
         private String email;
         private String code;
     }
+
+    /** GET /api/auth/me — 현재 로그인 회원 기본 정보 */
+    @Getter
+    @Builder
+    public static class MeResponse {
+        private Long memberId;
+        private String memberGrade;
+        private String name;
+    }
 }
