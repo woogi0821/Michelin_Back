@@ -15,6 +15,9 @@ public interface MemberRepository extends JpaRepository<Member, Long> {
     boolean existsByLoginId(String loginId);
     boolean existsByEmail(String email);
 
+    /** 소셜 로그인 — provider + providerId로 회원 조회 */
+    Optional<Member> findByProviderAndProviderId(String provider, String providerId);
+
     /** 정지 만료된 회원 목록 (스케줄러용) */
     @Query("SELECT m FROM Member m WHERE m.status = 'SUSPENDED' AND m.suspendedUntil <= :today")
     List<Member> findExpiredSuspensions(@Param("today") LocalDate today);
