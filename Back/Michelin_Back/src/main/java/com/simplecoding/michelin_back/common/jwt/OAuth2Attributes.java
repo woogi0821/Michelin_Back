@@ -27,20 +27,7 @@ public class OAuth2Attributes {
     @SuppressWarnings("unchecked")
     private static OAuth2Attributes ofKakao(Map<String, Object> attributes) {
         Map<String, Object> kakaoAccount = (Map<String, Object>) attributes.get("kakao_account");
-        Map<String, Object> profile = (Map<String, Object>) kakaoAccount.get("profile");
-
-        String providerId = String.valueOf(attributes.get("id"));
-
-        // ✅ 이메일 동의 여부 체크
-        Boolean emailNeedsAgreement = (Boolean) kakaoAccount.get("email_needs_agreement");
-        String email = (emailNeedsAgreement == null || !emailNeedsAgreement)
-                ? (String) kakaoAccount.get("email")
-                : null;
-
-        // ✅ 이메일 없으면 kakaoId로 대체
-        if (email == null || email.isBlank()) {
-            email = "kakao_" + providerId + "@oauth.local";
-        }
+        Map<String, Object> profile     = (Map<String, Object>) kakaoAccount.get("profile");
 
         String providerId = String.valueOf(attributes.get("id"));
 
