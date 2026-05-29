@@ -35,14 +35,32 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
                                         Authentication authentication) throws IOException, ServletException {
         OAuth2User oAuth2User = (OAuth2User) authentication.getPrincipal();
 
-        // email 대신 provider+providerId 기반 loginId 로 회원 조회
-        // — 카카오 이메일 미동의 등 email 이 null 인 경우에도 안전하게 동작
-        String loginId = extractLoginId(oAuth2User);
-        log.info("[OAuth2 로그인 성공] loginId={}", loginId);
+        // ✅ email 변수 선언 추가
+        String email = extractEmail(oAuth2User);
 
-        Member member = memberRepository.findByLoginId(loginId)
-                .orElseThrow(() -> new RuntimeException("등록되지 않은 사용자입니다. loginId=" + loginId));
+        // 이메일 없으면 가짜 이메일 생성
+        if (email == null || email.isEmpty()) {
+            email = "kakao_" + oAuth2User.getName() + "@temp.com";
+        }
 
+        final String finalEmail = email;
+
+        // DB에 없으면 가입 처리
+        Member member = memberRepository.findByEmail(finalEmail)
+                .orElseGet(() -> {
+                    Member newMember = Member.builder()
+                            .loginId(finalEmail)
+                            .loginPw(java.util.UUID.randomUUID().toString())
+                            .email(finalEmail)
+                            .name("카카오유저")
+                            .phone("010-0000-0000")
+                            .provider("KAKAO")
+                            .providerId(oAuth2User.getName())
+                            .build();
+                    return memberRepository.save(newMember);
+                });
+
+        // 토큰 발행 및 리다이렉트
         String accessToken  = tokenProvider.createAccessToken(member);
         String refreshToken = tokenProvider.createRefreshToken(member.getLoginId());
 
@@ -61,10 +79,7 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
         getRedirectStrategy().sendRedirect(request, response, targetUrl);
     }
 
-    /**
-     * OAuth2User attributes 에서 DB loginId (= "provider_providerId") 를 추출합니다.
-     * CustomOAuth2UserService.saveOrUpdate() 의 toMember() 와 동일한 규칙을 사용합니다.
-     */
+    // ✅ extractEmail 메서드 추가
     @SuppressWarnings("unchecked")
     private String extractLoginId(OAuth2User oAuth2User) {
         Map<String, Object> attributes = oAuth2User.getAttributes();
