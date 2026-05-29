@@ -42,6 +42,18 @@ public class OAuth2Attributes {
             email = "kakao_" + providerId + "@oauth.local";
         }
 
+        String providerId = String.valueOf(attributes.get("id"));
+
+        // 이메일 동의 여부 체크 — 미동의 시 kakao_account.email 이 null 로 내려올 수 있음
+        Boolean emailNeedsAgreement = (Boolean) kakaoAccount.get("email_needs_agreement");
+        String email = (emailNeedsAgreement == null || !emailNeedsAgreement)
+                ? (String) kakaoAccount.get("email")
+                : null;
+        // 이메일이 없는 경우 DB nullable=false 제약 위반 방지용 fallback
+        if (email == null || email.isBlank()) {
+            email = "kakao_" + providerId + "@oauth.local";
+        }
+
         return OAuth2Attributes.builder()
                 .email(email)
                 .name((String) profile.get("nickname"))

@@ -81,15 +81,18 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
 
     // ✅ extractEmail 메서드 추가
     @SuppressWarnings("unchecked")
-    private String extractEmail(OAuth2User oAuth2User) {
+    private String extractLoginId(OAuth2User oAuth2User) {
         Map<String, Object> attributes = oAuth2User.getAttributes();
 
-        if (attributes.get("kakao_account") != null) {
-            return (String) ((Map<String, Object>) attributes.get("kakao_account")).get("email");
+        // 카카오: attributes 최상위에 id(Long) 존재
+        if (attributes.containsKey("kakao_account")) {
+            return "kakao_" + attributes.get("id");
         }
-        if (attributes.get("response") != null) {
-            return (String) ((Map<String, Object>) attributes.get("response")).get("email");
+        // 네이버: attributes.response.id(String)
+        if (attributes.containsKey("response")) {
+            Map<String, Object> naverResponse = (Map<String, Object>) attributes.get("response");
+            return "naver_" + naverResponse.get("id");
         }
-        return (String) attributes.get("email");
+        throw new RuntimeException("지원하지 않는 OAuth2 Provider 입니다.");
     }
 }
