@@ -57,7 +57,12 @@ public class SecurityConfig {
                                 "/api/restaurants",
                                 "/api/restaurants/**",
                                 "/images/**",
-                                "/restaurants/**"
+                                "/restaurants/**",
+                                "/api-docs/**",
+                                "/swagger-ui/**",
+                                "/swagger-ui.html",
+                                "/v3/api-docs/**",
+                                "/api-doc.html"
                         ).permitAll()
                         .requestMatchers(
                                 "/api/v1/ads",

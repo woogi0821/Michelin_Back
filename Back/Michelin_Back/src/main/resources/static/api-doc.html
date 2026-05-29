@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>THE MICHELIN API 문서</title>
+    <style>body { margin: 0; padding: 0; }</style>
+  </head>
+  <body>
+    <redoc
+      spec-url="/api-docs"
+      expand-responses="200,201"
+      required-props-first="true"
+      hide-download-button="false"
+      theme='{
+        "colors": { "primary": { "main": "#e62117" } },
+        "typography": {
+          "fontSize": "14px",
+          "fontFamily": "Pretendard, sans-serif"
+        },
+        "sidebar": {
+          "width": "260px",
+          "backgroundColor": "#111",
+          "textColor": "#ccc"
+        },
+        "rightPanel": { "backgroundColor": "#1a1a1a" }
+      }'
+    ></redoc>
+    <script src="https://cdn.jsdelivr.net/npm/redoc/bundles/redoc.standalone.js"></script>
+  </body>
+</html>
