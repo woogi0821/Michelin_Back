@@ -42,8 +42,18 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
     }
 
     private Member saveOrUpdate(OAuth2Attributes attributes) {
-        Member member = memberRepository.findByEmail(attributes.getEmail())
-                .orElse(attributes.toMember());
-        return memberRepository.save(member);
+        // 1순위: provider + providerId 로 조회 (소셜 재로그인 시 정확한 매칭)
+        return memberRepository.findByProviderAndProviderId(
+                        attributes.getProvider(), attributes.getProviderId())
+                .orElseGet(() -> {
+                    // 2순위: 동일 이메일로 가입된 일반 회원이 있으면 연동
+                    boolean isFallbackEmail = attributes.getEmail().endsWith("@oauth.local");
+                    if (!isFallbackEmail) {
+                        return memberRepository.findByEmail(attributes.getEmail())
+                                .orElseGet(() -> memberRepository.save(attributes.toMember()));
+                    }
+                    // 3순위: 신규 등록
+                    return memberRepository.save(attributes.toMember());
+                });
     }
 }

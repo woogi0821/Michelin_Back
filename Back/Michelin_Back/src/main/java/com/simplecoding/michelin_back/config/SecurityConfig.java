@@ -64,9 +64,11 @@ public class SecurityConfig {
                                 "/api/v1/ads/**"
                         ).permitAll()
                         .requestMatchers("/subscribe/**").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/reviews/**").permitAll()  // ✅ 리뷰 조회 허용
                         .requestMatchers(HttpMethod.POST, "/api/reviews/**").authenticated()
                         .requestMatchers(HttpMethod.DELETE, "/api/reviews/**").authenticated()
                         .requestMatchers(HttpMethod.PUT, "/api/reviews/**").authenticated()
+                        .requestMatchers("/api/social/**").permitAll()  // ✅ 소셜 API 허용
                         .requestMatchers("/api/v1/admin/**").hasAuthority("Y")
                         .anyRequest().authenticated()
                 )

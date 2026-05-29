@@ -28,9 +28,9 @@ public class MemberController {
                 memberPageService.getProfile(userDetails.getMemberId())));
     }
 
-    /** 등급별 방문 현황 */
+    /** 등급별 방문 현황 — 배열 형식 */
     @GetMapping("/me/michelin-stats")
-    public ResponseEntity<ApiResponse<MemberPageDto.MichelinStatsResponse>> getMichelinStats(
+    public ResponseEntity<ApiResponse<List<MemberPageDto.MichelinStatItem>>> getMichelinStats(
             @AuthenticationPrincipal CustomUserDetails userDetails) {
         return ResponseEntity.ok(ApiResponse.success(
                 memberPageService.getMichelinStats(userDetails.getMemberId())));

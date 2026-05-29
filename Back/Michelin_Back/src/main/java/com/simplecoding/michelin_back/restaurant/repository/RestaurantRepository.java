@@ -39,4 +39,21 @@ public interface RestaurantRepository extends JpaRepository<Restaurant, Long>,
 
     // ── P4 - 이름 키워드 검색 (대소문자 무시) ───────────────────────────
     List<Restaurant> findByRestaurantNameContainingIgnoreCase(String name);
+
+    // ── 마이페이지 - 등급별 전체 ACTIVE 매장 수 ─────────────────────────
+    long countByGradeAndStatus(String grade, String status);
+
+    // ── 관리자 - 전체 레스토랑 조회 (DELETED 포함, 키워드/상태 필터) ───────
+    @Query("SELECT r FROM Restaurant r WHERE " +
+           "(:status IS NULL OR :status = '' OR r.status = :status) AND " +
+           "(:keyword IS NULL OR :keyword = '' OR " +
+           " LOWER(r.restaurantName) LIKE LOWER(CONCAT('%', :keyword, '%'))) " +
+           "ORDER BY r.createdAt DESC")
+    Page<Restaurant> findAllForAdmin(@Param("keyword") String keyword,
+                                     @Param("status") String status,
+                                     Pageable pageable);
+
+    // ── 관리자 대시보드 - 최근 등록 매장 ────────────────────────────────
+    @Query("SELECT r FROM Restaurant r ORDER BY r.createdAt DESC")
+    List<Restaurant> findRecentRestaurants(Pageable pageable);
 }

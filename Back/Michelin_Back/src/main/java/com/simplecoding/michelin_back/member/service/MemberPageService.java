@@ -13,7 +13,9 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
@@ -36,6 +38,10 @@ public class MemberPageService {
         long reviewCount   = reviewRepository.countByMemberIdAndIsDeleted(memberId, "N");
         long likeCount     = likeRepository.countByMemberId(memberId);
         long bookmarkCount = bookmarkRepository.countByMemberId(memberId);
+        // 리뷰를 남긴 매장 수 (중복 제거) = countVisitedByGrade 결과 합산
+        long visitCount = reviewRepository.countVisitedByGrade(memberId).stream()
+                .mapToLong(row -> ((Number) row[1]).longValue())
+                .sum();
 
         return MemberPageDto.ProfileResponse.builder()
                 .memberId(member.getMemberId())
@@ -47,32 +53,44 @@ public class MemberPageService {
                 .reviewCount(reviewCount)
                 .likeCount(likeCount)
                 .bookmarkCount(bookmarkCount)
+                .visitCount(visitCount)
                 .build();
     }
 
-    /** 등급별 방문 현황 (리뷰를 남긴 매장 기준) */
-    public MemberPageDto.MichelinStatsResponse getMichelinStats(Long memberId) {
+    /** 등급별 방문 현황 — 프론트 스펙: 배열로 반환 */
+    public List<MemberPageDto.MichelinStatItem> getMichelinStats(Long memberId) {
         List<Object[]> rows = reviewRepository.countVisitedByGrade(memberId);
 
-        long oneStar = 0, twoStar = 0, threeStar = 0, bibGourmand = 0;
-        for (Object[] row : rows) {
-            String grade = (String) row[0];
-            long count   = ((Number) row[1]).longValue();
-            switch (grade) {
-                case "1성"   -> oneStar     = count;
-                case "2성"   -> twoStar     = count;
-                case "3성"   -> threeStar   = count;
-                case "빕구르망" -> bibGourmand = count;
-            }
-        }
+        // 방문 수 맵 (grade → count)
+        Map<String, Long> visitedMap = rows.stream()
+                .collect(Collectors.toMap(
+                        row -> (String) row[0],
+                        row -> ((Number) row[1]).longValue()
+                ));
 
-        return MemberPageDto.MichelinStatsResponse.builder()
-                .oneStar(oneStar)
-                .twoStar(twoStar)
-                .threeStar(threeStar)
-                .bibGourmand(bibGourmand)
-                .total(oneStar + twoStar + threeStar + bibGourmand)
-                .build();
+        // 등급 정의 — label/color는 프론트 스펙 기준
+        record GradeDef(String label, String grade, String color) {}
+        List<GradeDef> defs = List.of(
+                new GradeDef("★ 1 STAR",      "1스타",    "#DAA520"),
+                new GradeDef("★★ 2 STAR",     "2스타",    "#C0C0C0"),
+                new GradeDef("★★★ 3 STAR",    "3스타",    "#FFD700"),
+                new GradeDef("BIB GOURMAND",   "빕 구르망", "#E8534A")
+        );
+
+        List<MemberPageDto.MichelinStatItem> result = new ArrayList<>();
+        for (GradeDef def : defs) {
+            long visited = visitedMap.getOrDefault(def.grade(), 0L);
+            long total   = restaurantRepository.countByGradeAndStatus(def.grade(), "ACTIVE");
+            result.add(MemberPageDto.MichelinStatItem.builder()
+                    .label(def.label())
+                    .grade(def.grade())
+                    .visited(visited)
+                    .total(total)
+                    .color(def.color())
+                    .borderColor(def.color())
+                    .build());
+        }
+        return result;
     }
 
     /** 내 리뷰 목록 (원글만, 최신순) */
@@ -104,6 +122,7 @@ public class MemberPageService {
                                 .restaurantId(r.getId())
                                 .restaurantName(r.getRestaurantName())
                                 .address(r.getAddress())
+                                .district(r.getDistrict())
                                 .grade(r.getGrade())
                                 .category(r.getCategory())
                                 .createdAt(like.getCreatedAt())
@@ -121,6 +140,7 @@ public class MemberPageService {
                                 .restaurantId(r.getId())
                                 .restaurantName(r.getRestaurantName())
                                 .address(r.getAddress())
+                                .district(r.getDistrict())
                                 .grade(r.getGrade())
                                 .category(r.getCategory())
                                 .createdAt(bm.getCreatedAt())

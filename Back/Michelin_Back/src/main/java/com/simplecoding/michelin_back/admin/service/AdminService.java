@@ -13,6 +13,7 @@ import com.simplecoding.michelin_back.restaurant.repository.RestaurantRepository
 import com.simplecoding.michelin_back.review.entity.RestaurantReview;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -35,9 +36,9 @@ public class AdminService {
 
     // ── 회원 관리 ──────────────────────────────────────────
 
-    /** 회원 목록 조회 */
-    public Page<AdminDto.MemberResponse> getMembers(Pageable pageable) {
-        return memberRepository.findAll(pageable).map(this::toMemberResponse);
+    /** 회원 목록 조회 (keyword 검색 포함) */
+    public Page<AdminDto.MemberResponse> getMembers(String keyword, Pageable pageable) {
+        return memberRepository.searchByKeyword(keyword, pageable).map(this::toMemberResponse);
     }
 
     /** 회원 정지 */
@@ -57,23 +58,26 @@ public class AdminService {
         member.releaseSuspension();
     }
 
-    /** 회원 탈퇴 처리 */
+    /** 회원 탈퇴 처리 (영구 정지) */
     @Transactional
     public void withdrawMember(Long memberId) {
         Member member = memberRepository.findById(memberId)
                 .orElseThrow(() -> CommonException.notFound("회원을 찾을 수 없습니다."));
-        member.suspend(LocalDate.of(9999, 12, 31)); // 영구 정지로 탈퇴 처리
+        member.suspend(LocalDate.of(9999, 12, 31));
     }
 
     // ── 리뷰 관리 ──────────────────────────────────────────
 
-    /** 리뷰 목록 조회 (상태 필터) */
+    /**
+     * 리뷰 목록 조회 (상태 필터)
+     * 프론트 status: ALL | ACTIVE | REPORTED(=BLINDED) | DELETED
+     */
     public Page<AdminDto.ReviewResponse> getReviews(String status, Pageable pageable) {
         Page<RestaurantReview> page = switch (status.toUpperCase()) {
-            case "ACTIVE"   -> adminRepository.findByIsDeletedAndIsBlindedOrderByCreatedAtDesc("N", "N", pageable);
-            case "DELETED"  -> adminRepository.findByIsDeletedOrderByCreatedAtDesc("Y", pageable);
-            case "BLINDED"  -> adminRepository.findByIsBlindedOrderByCreatedAtDesc("Y", pageable);
-            default         -> adminRepository.findAllByOrderByCreatedAtDesc(pageable);
+            case "ACTIVE"              -> adminRepository.findByIsDeletedAndIsBlindedOrderByCreatedAtDesc("N", "N", pageable);
+            case "DELETED"             -> adminRepository.findByIsDeletedOrderByCreatedAtDesc("Y", pageable);
+            case "REPORTED", "BLINDED" -> adminRepository.findByIsBlindedOrderByCreatedAtDesc("Y", pageable);
+            default                    -> adminRepository.findAllByOrderByCreatedAtDesc(pageable);
         };
         return page.map(this::toReviewResponse);
     }
@@ -102,9 +106,33 @@ public class AdminService {
         review.blind();
     }
 
+    // ── 레스토랑 관리 ──────────────────────────────────────────
+
+    /** 레스토랑 목록 조회 (관리자용: DELETED 포함, 키워드/상태 필터) */
+    public Page<AdminDto.RestaurantResponse> getRestaurants(String keyword, String status, Pageable pageable) {
+        return restaurantRepository.findAllForAdmin(keyword, status, pageable)
+                .map(this::toRestaurantResponse);
+    }
+
+    /** 레스토랑 삭제 (Soft Delete) */
+    @Transactional
+    public void deleteRestaurant(Long restaurantId) {
+        Restaurant restaurant = restaurantRepository.findById(restaurantId)
+                .orElseThrow(() -> CommonException.notFound("레스토랑을 찾을 수 없습니다."));
+        restaurant.softDelete();
+    }
+
+    /** 레스토랑 복구 */
+    @Transactional
+    public void restoreRestaurant(Long restaurantId) {
+        Restaurant restaurant = restaurantRepository.findById(restaurantId)
+                .orElseThrow(() -> CommonException.notFound("레스토랑을 찾을 수 없습니다."));
+        restaurant.restore();
+    }
+
     // ── 문의 관리 ──────────────────────────────────────────
 
-    /** 문의 목록 조회 */
+    /** 문의 목록 조회 (status 필터) */
     public Page<AdminDto.InquiryResponse> getInquiries(String status, Pageable pageable) {
         Page<Inquiry> page = (status == null || status.isBlank())
                 ? inquiryRepository.findAllByOrderByCreatedAtDesc(pageable)
@@ -126,29 +154,45 @@ public class AdminService {
     public AdminDto.DashboardStats getDashboardStats() {
         long totalMembers     = memberRepository.count();
         long totalRestaurants = restaurantRepository.count();
-        long todayNewReviews  = adminRepository.countTodayReviews(LocalDateTime.now().toLocalDate().atStartOfDay());
+        long newReviewsToday  = adminRepository.countTodayReviews(LocalDateTime.now().toLocalDate().atStartOfDay());
         long activePopups     = popubAdRepository.countByIsActive("Y");
 
         List<AdminDto.RecentRestaurant> recentRestaurants = restaurantRepository
-                .findAll(Pageable.ofSize(5)).stream()
+                .findRecentRestaurants(PageRequest.of(0, 5)).stream()
                 .map(r -> AdminDto.RecentRestaurant.builder()
-                        .id(r.getId())
-                        .restaurantName(r.getRestaurantName())
-                        .city(r.getCity())
-                        .grade(r.getGrade())
+                        .restaurantId(r.getId())
+                        .name(r.getRestaurantName())
+                        .category(r.getCategory())
+                        .regDate(r.getCreatedAt())
                         .build())
                 .collect(Collectors.toList());
 
         return AdminDto.DashboardStats.builder()
                 .totalMembers(totalMembers)
                 .totalRestaurants(totalRestaurants)
-                .todayNewReviews(todayNewReviews)
+                .newReviewsToday(newReviewsToday)
                 .activePopups(activePopups)
                 .recentRestaurants(recentRestaurants)
                 .build();
     }
 
     // ── 변환 메서드 ──────────────────────────────────────────
+
+    private AdminDto.RestaurantResponse toRestaurantResponse(Restaurant r) {
+        return AdminDto.RestaurantResponse.builder()
+                .id(r.getId())
+                .restaurantName(r.getRestaurantName())
+                .grade(r.getGrade())
+                .city(r.getCity())
+                .district(r.getDistrict())
+                .address(r.getAddress())
+                .category(r.getCategory())
+                .isGreenStar(r.getIsGreenStar())
+                .viewCount(r.getViewCount())
+                .status(r.getStatus())
+                .createdAt(r.getCreatedAt())
+                .build();
+    }
 
     private AdminDto.MemberResponse toMemberResponse(Member m) {
         return AdminDto.MemberResponse.builder()
@@ -167,23 +211,34 @@ public class AdminService {
     }
 
     private AdminDto.ReviewResponse toReviewResponse(RestaurantReview r) {
+        String writer = memberRepository.findById(r.getMemberId())
+                .map(Member::getLoginId)
+                .orElse("알 수 없음");
+
+        String status;
+        if ("Y".equals(r.getIsDeleted()))      status = "DELETED";
+        else if ("Y".equals(r.getIsBlinded())) status = "REPORTED";
+        else                                    status = "ACTIVE";
+
         return AdminDto.ReviewResponse.builder()
-                .reviewId(r.getReviewId())
-                .restaurantId(r.getRestaurantId())
-                .memberId(r.getMemberId())
+                .id(r.getReviewId())
+                .writer(writer)
                 .content(r.getContent())
-                .rating(r.getRating())
-                .isDeleted(r.getIsDeleted())
-                .isBlinded(r.getIsBlinded())
+                .reportCount(0)
                 .createdAt(r.getCreatedAt())
-                .updatedAt(r.getUpdatedAt())
+                .status(status)
                 .build();
     }
 
     private AdminDto.InquiryResponse toInquiryResponse(Inquiry i) {
+        String memberName = memberRepository.findById(i.getMemberId())
+                .map(Member::getName)
+                .orElse("알 수 없음");
+
         return AdminDto.InquiryResponse.builder()
-                .inquiryId(i.getInquiryId())
+                .id(i.getInquiryId())
                 .memberId(i.getMemberId())
+                .memberName(memberName)
                 .category(i.getCategory())
                 .title(i.getTitle())
                 .content(i.getContent())

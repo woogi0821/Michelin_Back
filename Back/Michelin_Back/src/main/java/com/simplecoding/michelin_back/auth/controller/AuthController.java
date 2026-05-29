@@ -5,6 +5,7 @@ import com.simplecoding.michelin_back.auth.service.EmailService;
 import com.simplecoding.michelin_back.auth.service.MemberService;
 import com.simplecoding.michelin_back.common.ApiResponse;
 import com.simplecoding.michelin_back.common.CommonException;
+import com.simplecoding.michelin_back.common.CustomUserDetails;
 import com.simplecoding.michelin_back.common.jwt.JwtTokenProvider;
 import com.simplecoding.michelin_back.member.entity.Member;
 import com.simplecoding.michelin_back.member.repository.MemberRepository;
@@ -15,6 +16,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Arrays;
@@ -28,6 +30,21 @@ public class AuthController {
     private final MemberRepository memberRepository;
     private final MemberService memberService;
     private final EmailService emailService;
+
+    /** 현재 로그인 회원 정보 조회 — 소셜 로그인 직후 프론트에서 즉시 호출 */
+    @GetMapping("/me")
+    public ResponseEntity<ApiResponse<AuthDto.MeResponse>> getMe(
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+        Member member = memberRepository.findById(userDetails.getMemberId())
+                .orElseThrow(() -> CommonException.notFound("회원을 찾을 수 없습니다."));
+        return ResponseEntity.ok(ApiResponse.success(
+                AuthDto.MeResponse.builder()
+                        .memberId(member.getMemberId())
+                        .memberGrade(member.getMemberGrade())
+                        .name(member.getName())
+                        .build()
+        ));
+    }
 
     /** 일반 로그인 */
     @PostMapping("/login")

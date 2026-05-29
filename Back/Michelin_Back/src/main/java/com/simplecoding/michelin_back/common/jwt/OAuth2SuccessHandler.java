@@ -34,11 +34,33 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
     public void onAuthenticationSuccess(HttpServletRequest request, HttpServletResponse response,
                                         Authentication authentication) throws IOException, ServletException {
         OAuth2User oAuth2User = (OAuth2User) authentication.getPrincipal();
+
+        // ✅ email 변수 선언 추가
         String email = extractEmail(oAuth2User);
 
-        Member member = memberRepository.findByEmail(email)
-                .orElseThrow(() -> new RuntimeException("등록되지 않은 사용자입니다."));
+        // 이메일 없으면 가짜 이메일 생성
+        if (email == null || email.isEmpty()) {
+            email = "kakao_" + oAuth2User.getName() + "@temp.com";
+        }
 
+        final String finalEmail = email;
+
+        // DB에 없으면 가입 처리
+        Member member = memberRepository.findByEmail(finalEmail)
+                .orElseGet(() -> {
+                    Member newMember = Member.builder()
+                            .loginId(finalEmail)
+                            .loginPw(java.util.UUID.randomUUID().toString())
+                            .email(finalEmail)
+                            .name("카카오유저")
+                            .phone("010-0000-0000")
+                            .provider("KAKAO")
+                            .providerId(oAuth2User.getName())
+                            .build();
+                    return memberRepository.save(newMember);
+                });
+
+        // 토큰 발행 및 리다이렉트
         String accessToken  = tokenProvider.createAccessToken(member);
         String refreshToken = tokenProvider.createRefreshToken(member.getLoginId());
 
@@ -57,6 +79,7 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
         getRedirectStrategy().sendRedirect(request, response, targetUrl);
     }
 
+    // ✅ extractEmail 메서드 추가
     @SuppressWarnings("unchecked")
     private String extractEmail(OAuth2User oAuth2User) {
         Map<String, Object> attributes = oAuth2User.getAttributes();

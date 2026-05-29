@@ -105,8 +105,11 @@ public class Restaurant {
         this.kakaoPlaceId = kakaoPlaceId;
         this.category = category;
     }
-    // Restaurant.java 클래스 내부 아래쪽에 추가하세요
     public void softDelete() {
         this.status = "DELETED";
+    }
+
+    public void restore() {
+        this.status = "ACTIVE";
     }
 }

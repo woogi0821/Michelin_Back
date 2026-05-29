@@ -20,17 +20,22 @@ public class MemberPageDto {
         private long reviewCount;
         private long likeCount;
         private long bookmarkCount;
+        private long visitCount;   // 리뷰 남긴 매장 수 (중복 제거)
     }
 
-    /** GET /api/v1/members/me/michelin-stats — 등급별 방문 현황 */
+    /**
+     * GET /api/v1/members/me/michelin-stats — 등급별 방문 현황
+     * 프론트 스펙: 배열로 반환, 각 항목은 label/grade/visited/total/color/borderColor
+     */
     @Getter
     @Builder
-    public static class MichelinStatsResponse {
-        private long oneStar;
-        private long twoStar;
-        private long threeStar;
-        private long bibGourmand;
+    public static class MichelinStatItem {
+        private String label;
+        private String grade;
+        private long visited;
         private long total;
+        private String color;
+        private String borderColor;
     }
 
     /** GET /api/v1/members/me/reviews — 내 리뷰 목록 */
@@ -52,6 +57,7 @@ public class MemberPageDto {
         private Long restaurantId;
         private String restaurantName;
         private String address;
+        private String district;
         private String grade;
         private String category;
         private LocalDateTime createdAt;
