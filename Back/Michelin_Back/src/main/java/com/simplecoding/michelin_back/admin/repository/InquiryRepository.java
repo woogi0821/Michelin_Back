@@ -6,8 +6,6 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface InquiryRepository extends JpaRepository<Inquiry, Long> {
-    Page<Inquiry> findByMember_MemberIdOrderByInsertTimeDesc(Long memberId, Pageable pageable);
-    Page<Inquiry> findByStatusOrderByInsertTimeDesc(String status, Pageable pageable);
-    Page<Inquiry> findAllByOrderByInsertTimeDesc(Pageable pageable);
-    long countByStatus(String status);
+    Page<Inquiry> findAllByOrderByCreatedAtDesc(Pageable pageable);
+    Page<Inquiry> findByStatusOrderByCreatedAtDesc(String status, Pageable pageable);
 }

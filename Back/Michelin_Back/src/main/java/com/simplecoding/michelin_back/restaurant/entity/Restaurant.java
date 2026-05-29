@@ -65,6 +65,9 @@ public class Restaurant {
     @Column(name = "UPDATED_AT")
     private LocalDateTime updatedAt;
 
+    @Column(name = "STATUS")
+    private String status = "ACTIVE"; // "ACTIVE" 혹은 "DELETED"만 들어와야 함
+
     @OneToMany(mappedBy = "restaurant", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private List<RestaurantImage> images = new ArrayList<>();
 
@@ -84,11 +87,11 @@ public class Restaurant {
         this.viewCount = (this.viewCount == null ? 0 : this.viewCount) + 1;
     }
 
-    // 정보 수정
+    // ✅ 정보 수정 - kakaoPlaceId 추가
     public void update(String restaurantName, String city, String district,
                        String address, String phone, String grade,
                        String isGreenStar, Double lat, Double lng,
-                       String kakaoPlaceUrl, String category) {
+                       String kakaoPlaceUrl, String kakaoPlaceId, String category) {
         this.restaurantName = restaurantName;
         this.city = city;
         this.district = district;
@@ -99,6 +102,14 @@ public class Restaurant {
         this.lat = lat;
         this.lng = lng;
         this.kakaoPlaceUrl = kakaoPlaceUrl;
+        this.kakaoPlaceId = kakaoPlaceId;
         this.category = category;
+    }
+    public void softDelete() {
+        this.status = "DELETED";
+    }
+
+    public void restore() {
+        this.status = "ACTIVE";
     }
 }

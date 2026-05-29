@@ -12,15 +12,15 @@ import java.util.List;
 public class CustomUserDetails implements UserDetails {
 
     private final Long memberId;
-    private final String loginId;
+    private final String username;
     private final String password;
     private final String role;
 
-    public CustomUserDetails(Long memberId, String loginId, String password, String role) {
+    public CustomUserDetails(Long memberId, String username, String password, String role) {
         this.memberId = memberId;
-        this.loginId  = loginId;
+        this.username = username;
         this.password = password;
-        this.role     = role;
+        this.role = role;
     }
 
     @Override
@@ -28,10 +28,10 @@ public class CustomUserDetails implements UserDetails {
         return List.of(new SimpleGrantedAuthority(role));
     }
 
-    @Override public String getPassword()              { return password; }
-    @Override public String getUsername()              { return loginId; }
-    @Override public boolean isAccountNonExpired()     { return true; }
-    @Override public boolean isAccountNonLocked()      { return true; }
-    @Override public boolean isCredentialsNonExpired() { return true; }
-    @Override public boolean isEnabled()               { return true; }
+    @Override public String getPassword()  { return password; }
+    @Override public String getUsername()  { return username; }
+    @Override public boolean isAccountNonExpired()   { return true; }
+    @Override public boolean isAccountNonLocked()    { return true; }
+    @Override public boolean isCredentialsNonExpired(){ return true; }
+    @Override public boolean isEnabled()             { return true; }
 }

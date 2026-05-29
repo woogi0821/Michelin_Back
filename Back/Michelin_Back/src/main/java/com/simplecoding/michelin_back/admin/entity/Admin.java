@@ -1,17 +1,18 @@
 package com.simplecoding.michelin_back.admin.entity;
 
-import com.simplecoding.michelin_back.member.entity.Member;
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UpdateTimestamp;
 
-/**
- * 관리자 엔티티
- * ADMIN_ROLE: SUPER_ADMIN (전체 권한) / CONTENT_ADMIN (콘텐츠 관리 권한)
- */
+import java.time.LocalDateTime;
+
 @Entity
 @Table(name = "ADMIN")
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
+@AllArgsConstructor
+@Builder
 public class Admin {
 
     @Id
@@ -20,16 +21,30 @@ public class Admin {
     @Column(name = "ADMIN_ID")
     private Long adminId;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "MEMBER_ID", nullable = false)
-    private Member member;
+    @Column(name = "MEMBER_ID", nullable = false)
+    private Long memberId;
 
-    @Column(name = "ADMIN_ROLE", length = 20)
+    /** MANAGER | SUPER */
+    @Column(name = "ADMIN_ROLE", nullable = false, length = 20)
     private String adminRole;
 
-    @Builder
-    public Admin(Member member, String adminRole) {
-        this.member = member;
-        this.adminRole = adminRole;
+    /** ALL | MEMBER | RESTAURANT | REVIEW | NOTICE | POPUP */
+    @Column(name = "ADMIN_PART", nullable = false, length = 20)
+    private String adminPart;
+
+    @CreationTimestamp
+    @Column(name = "INSERT_TIME", updatable = false)
+    private LocalDateTime insertTime;
+
+    @UpdateTimestamp
+    @Column(name = "UPDATE_TIME")
+    private LocalDateTime updateTime;
+
+    public void changeRole(String newRole) {
+        this.adminRole = newRole;
+    }
+
+    public void changePart(String newPart) {
+        this.adminPart = newPart;
     }
 }

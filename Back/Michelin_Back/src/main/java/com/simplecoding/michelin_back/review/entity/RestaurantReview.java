@@ -37,6 +37,10 @@ public class RestaurantReview {
     @Column(name = "IS_DELETED", nullable = false, length = 10)
     private String isDeleted = "N";
 
+    @Builder.Default
+    @Column(name = "IS_BLINDED", nullable = false, length = 1)
+    private String isBlinded = "N";
+
     @CreationTimestamp
     @Column(name = "CREATED_AT", updatable = false)
     private LocalDateTime createdAt;
@@ -67,9 +71,23 @@ public class RestaurantReview {
     public void softDelete() {
         this.isDeleted = "Y";
         this.updatedAt = LocalDateTime.now();
-        // 자식 답글들도 재귀적으로 소프트 삭제
         for (RestaurantReview child : children) {
             child.softDelete();
         }
+    }
+
+    public void restore() {
+        this.isDeleted = "N";
+        this.updatedAt = LocalDateTime.now();
+    }
+
+    public void blind() {
+        this.isBlinded = "Y";
+        this.updatedAt = LocalDateTime.now();
+    }
+
+    public void unblind() {
+        this.isBlinded = "N";
+        this.updatedAt = LocalDateTime.now();
     }
 }

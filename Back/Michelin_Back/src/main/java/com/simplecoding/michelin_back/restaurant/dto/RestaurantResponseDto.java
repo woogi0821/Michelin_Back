@@ -1,6 +1,7 @@
 package com.simplecoding.michelin_back.restaurant.dto;
 
 import com.simplecoding.michelin_back.restaurant.entity.Restaurant;
+import com.simplecoding.michelin_back.restaurant.entity.RestaurantImage;
 import lombok.Getter;
 
 import java.time.LocalDateTime;
@@ -28,6 +29,7 @@ public class RestaurantResponseDto {
     private String mainImageUrl;
     private List<String> imageUrls;
     private Double distance;
+    private String category; // ✅ 추가
 
     public RestaurantResponseDto(Restaurant restaurant) {
         this.id = restaurant.getId();
@@ -46,19 +48,23 @@ public class RestaurantResponseDto {
         this.createdAt = restaurant.getCreatedAt();
         this.updatedAt = restaurant.getUpdatedAt();
         this.distance = null;
+        this.category = restaurant.getCategory(); // ✅ 추가
 
-        this.mainImageUrl = restaurant.getImages().stream()
+        List<RestaurantImage> images = restaurant.getImages() != null
+                ? restaurant.getImages()
+                : List.of();
+
+        this.mainImageUrl = images.stream()
                 .filter(img -> "Y".equals(img.getIsMain()))
                 .map(img -> img.getImageUrl())
                 .findFirst()
                 .orElse(null);
 
-        this.imageUrls = restaurant.getImages().stream()
+        this.imageUrls = images.stream()
                 .map(img -> img.getImageUrl())
                 .collect(Collectors.toList());
     }
 
-    // 거리 세팅용 생성자
     public void setDistance(Double distance) {
         this.distance = distance;
     }

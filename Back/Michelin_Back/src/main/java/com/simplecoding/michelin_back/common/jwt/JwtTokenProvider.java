@@ -87,7 +87,6 @@ public class JwtTokenProvider {
         }
     }
 
-    // CustomUserDetails 반환 — memberId를 토큰 클레임에서 추출
     public Authentication getAuthentication(String accessToken) {
         Claims claims = parseClaims(accessToken);
 

@@ -1,5 +1,6 @@
 package com.simplecoding.michelin_back.review.repository;
 
+import com.simplecoding.michelin_back.restaurant.entity.Restaurant;
 import com.simplecoding.michelin_back.review.entity.RestaurantReview;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -25,4 +26,18 @@ public interface RestaurantReviewRepository extends JpaRepository<RestaurantRevi
 
     // 4. 특정 부모 리뷰에 달린 삭제되지 않은 답글들 조회
     List<RestaurantReview> findByParentAndIsDeleted(RestaurantReview parent, String isDeleted);
+
+    // 5. [마이페이지] 내 리뷰 목록 (원글만, 최신순)
+    List<RestaurantReview> findByMemberIdAndIsDeletedAndParentIsNullOrderByCreatedAtDesc(Long memberId, String isDeleted);
+
+    // 6. [마이페이지] 내 리뷰 수 카운트
+    long countByMemberIdAndIsDeleted(Long memberId, String isDeleted);
+
+    // 7. [마이페이지] 등급별 방문 매장 수 (리뷰 기준, 매장 중복 제거)
+    @Query("SELECT r.grade, COUNT(DISTINCT rv.restaurantId) " +
+           "FROM RestaurantReview rv " +
+           "JOIN Restaurant r ON rv.restaurantId = r.id " +
+           "WHERE rv.memberId = :memberId AND rv.isDeleted = 'N' " +
+           "GROUP BY r.grade")
+    List<Object[]> countVisitedByGrade(@Param("memberId") Long memberId);
 }

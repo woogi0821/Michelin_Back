@@ -1,6 +1,7 @@
 package com.simplecoding.michelin_back.notification.sse;
 
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
@@ -50,6 +51,21 @@ public class SseEmitters {
         log.info("📢 SSE 브로드캐스트 시작 - 이벤트: {}, 접속 유저 수: {}", eventName, emitters.size());
         emitters.forEach((id, emitter) -> {
             sendEvent(id, emitter, eventName, data);
+        });
+    }
+
+    // 3. 하트비트 (30초마다 ping 이벤트 전송 — 브라우저 EventSource 연결 유지)
+    @Scheduled(fixedDelay = 30000)
+    public void sendHeartbeat() {
+        if (emitters.isEmpty()) return;
+        log.debug("💓 SSE 하트비트 전송 - 접속자 수: {}", emitters.size());
+        emitters.forEach((memberId, emitter) -> {
+            try {
+                emitter.send(SseEmitter.event().name("ping").data(""));
+            } catch (IOException e) {
+                emitters.remove(memberId);
+                log.warn("💓 하트비트 전송 실패 - memberId: {} 연결 제거", memberId);
+            }
         });
     }
 

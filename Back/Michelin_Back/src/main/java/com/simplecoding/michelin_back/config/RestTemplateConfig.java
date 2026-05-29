@@ -1,4 +1,4 @@
-package com.simplecoding.michelin_back.common;
+package com.simplecoding.michelin_back.config;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;

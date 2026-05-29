@@ -9,89 +9,65 @@ import java.util.Map;
 @Getter
 @Builder
 public class OAuth2Attributes {
-    private Map<String, Object> attributes;
-    private String nameAttributeKey;
-    private String name;
+
     private String email;
-    private String phone;      // 가능한 경우 추출, 없으면 ""
+    private String name;
     private String provider;
     private String providerId;
 
-    public static OAuth2Attributes of(String registrationId, String userNameAttributeName,
-                                      Map<String, Object> attributes) {
-        if ("naver".equals(registrationId)) {
-            return ofNaver("id", attributes);
-        }
+    public static OAuth2Attributes of(String registrationId, Map<String, Object> attributes) {
         if ("kakao".equals(registrationId)) {
-            return ofKakao("id", attributes);
+            return ofKakao(attributes);
+        } else if ("naver".equals(registrationId)) {
+            return ofNaver(attributes);
         }
-        return ofKakao(userNameAttributeName, attributes);
+        throw new IllegalArgumentException("지원하지 않는 소셜 로그인입니다: " + registrationId);
     }
 
     @SuppressWarnings("unchecked")
-    private static OAuth2Attributes ofKakao(String userNameAttributeName, Map<String, Object> attributes) {
+    private static OAuth2Attributes ofKakao(Map<String, Object> attributes) {
         Map<String, Object> kakaoAccount = (Map<String, Object>) attributes.get("kakao_account");
-        Map<String, Object> kakaoProfile = (Map<String, Object>) kakaoAccount.get("profile");
+        Map<String, Object> profile     = (Map<String, Object>) kakaoAccount.get("profile");
 
-        // 전화번호: scope에 phone_number 포함 시 제공 (+82 10-xxxx-xxxx → 정규화)
-        String rawPhone = (String) kakaoAccount.getOrDefault("phone_number", "");
-        String phone = normalizePhone(rawPhone);
+        String providerId = String.valueOf(attributes.get("id"));
+
+        // 이메일 동의 여부 체크 — 미동의 시 kakao_account.email 이 null 로 내려올 수 있음
+        Boolean emailNeedsAgreement = (Boolean) kakaoAccount.get("email_needs_agreement");
+        String email = (emailNeedsAgreement == null || !emailNeedsAgreement)
+                ? (String) kakaoAccount.get("email")
+                : null;
+        // 이메일이 없는 경우 DB nullable=false 제약 위반 방지용 fallback
+        if (email == null || email.isBlank()) {
+            email = "kakao_" + providerId + "@oauth.local";
+        }
 
         return OAuth2Attributes.builder()
-                .name((String) kakaoProfile.get("nickname"))
-                .email((String) kakaoAccount.get("email"))
-                .phone(phone)
-                .provider("KAKAO")
-                .providerId(String.valueOf(attributes.get(userNameAttributeName)))
-                .attributes(attributes)
-                .nameAttributeKey(userNameAttributeName)
+                .email(email)
+                .name((String) profile.get("nickname"))
+                .provider("kakao")
+                .providerId(providerId)
                 .build();
     }
 
     @SuppressWarnings("unchecked")
-    private static OAuth2Attributes ofNaver(String userNameAttributeName, Map<String, Object> attributes) {
+    private static OAuth2Attributes ofNaver(Map<String, Object> attributes) {
         Map<String, Object> response = (Map<String, Object>) attributes.get("response");
 
-        // 전화번호: scope에 mobile 포함 시 제공 (+82-10-xxxx-xxxx → 정규화)
-        String rawPhone = (String) response.getOrDefault("mobile", "");
-        String phone = normalizePhone(rawPhone);
-
         return OAuth2Attributes.builder()
-                .name((String) response.get("name"))
                 .email((String) response.get("email"))
-                .phone(phone)
-                .provider("NAVER")
-                .providerId((String) response.get(userNameAttributeName))
-                .attributes(response)
-                .nameAttributeKey(userNameAttributeName)
+                .name((String) response.get("name"))
+                .provider("naver")
+                .providerId((String) response.get("id"))
                 .build();
     }
 
-    /**
-     * "+82-10-1234-5678" / "+82 10-1234-5678" → "010-1234-5678"
-     * 제공되지 않으면 빈 문자열 반환 (DB NOT NULL 우회)
-     */
-    private static String normalizePhone(String raw) {
-        if (raw == null || raw.isBlank()) return "";
-        // +82 국가코드 제거 후 앞자리 0 붙이기
-        String digits = raw.replaceAll("[^0-9]", "");
-        if (digits.startsWith("82") && digits.length() >= 11) {
-            digits = "0" + digits.substring(2);
-        }
-        // 11자리면 하이픈 포맷으로
-        if (digits.length() == 11) {
-            return digits.substring(0, 3) + "-" + digits.substring(3, 7) + "-" + digits.substring(7);
-        }
-        return digits.length() > 0 ? digits : "";
-    }
-
-    public Member toEntity() {
+    public Member toMember() {
         return Member.builder()
                 .loginId(provider + "_" + providerId)
-                .loginPw("")
-                .name(name)
+                .loginPw("OAUTH2_USER")
                 .email(email)
-                .phone(phone)          // 정규화된 전화번호 (없으면 "")
+                .name(name != null ? name : "소셜유저")
+                .phone("000-0000-0000")
                 .provider(provider)
                 .providerId(providerId)
                 .build();

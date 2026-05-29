@@ -1,7 +1,11 @@
 package com.simplecoding.michelin_back.review.service;
 
+import com.simplecoding.michelin_back.member.entity.Member;
+import com.simplecoding.michelin_back.member.repository.MemberRepository;
+import com.simplecoding.michelin_back.notification.service.NotificationService;
 import com.simplecoding.michelin_back.notification.sse.SseEmitters; // SSE 주입
 import com.simplecoding.michelin_back.review.dto.ReviewRequestDto;
+import com.simplecoding.michelin_back.review.dto.ReviewResponseDto;
 import com.simplecoding.michelin_back.review.entity.RestaurantReview;
 import com.simplecoding.michelin_back.review.entity.ReviewReaction;
 import com.simplecoding.michelin_back.review.repository.RestaurantReviewRepository;
@@ -10,7 +14,11 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -20,18 +28,21 @@ public class ReviewService {
     private final RestaurantReviewRepository reviewRepository;
     private final ReviewReactionRepository reactionRepository;
     private final SseEmitters sseEmitters; // 1. SSE 이미터 주입 추가
+    private final MemberRepository memberRepository; // ✅ 추가된 의존성
+    private final NotificationService notificationService;
 
     /**
      * 1. 리뷰 및 답글 등록
      */
     @Transactional
     public Long createReview(ReviewRequestDto dto) {
+        // 1. 빌더 설정
         RestaurantReview.RestaurantReviewBuilder builder = RestaurantReview.builder()
                 .restaurantId(dto.getRestaurantId())
                 .memberId(dto.getMemberId())
                 .content(dto.getContent())
                 .rating(dto.getRating())
-                .isDeleted("N"); // 기본값 명시
+                .isDeleted("N");
 
         if (dto.getParentReviewId() != null) {
             RestaurantReview parent = reviewRepository.findById(dto.getParentReviewId())
@@ -39,10 +50,11 @@ public class ReviewService {
             builder.parent(parent);
         }
 
+        // 2. 저장과 동시에 savedId에 값을 바로 할당 (이러면 빨간 줄이 사라집니다)
         Long savedId = reviewRepository.save(builder.build()).getReviewId();
 
-        // [선택] 리뷰 등록 시에도 실시간 알림을 보내고 싶다면 추가
-        // sseEmitters.broadcast("review_create", dto.getRestaurantId());
+        // 3. 이제 여기서 savedId를 마음껏 써도 됩니다.
+        sseEmitters.broadcast("review_update", "newReview:" + savedId);
 
         return savedId;
     }
@@ -72,26 +84,57 @@ public class ReviewService {
         RestaurantReview review = reviewRepository.findById(reviewId)
                 .orElseThrow(() -> new IllegalArgumentException("리뷰가 존재하지 않습니다."));
 
+        // 자기 리뷰에 자기가 반응하는 것 차단
+        if (memberId.equals(review.getMemberId())) {
+            throw new IllegalArgumentException("본인 리뷰에는 반응을 남길 수 없습니다.");
+        }
+
         Optional<ReviewReaction> existingReaction = reactionRepository.findByMemberIdAndReview(memberId, review);
+
+        boolean likeAdded = false; // 좋아요가 실제로 추가됐는지 추적
 
         if (existingReaction.isPresent()) {
             ReviewReaction reaction = existingReaction.get();
             if (reaction.getReactionType().equals(type)) {
+                // 같은 타입 → 취소
                 reactionRepository.delete(reaction);
             } else {
+                // 다른 타입으로 변경
                 reaction.setReactionType(type);
+                if ("LIKE".equals(type)) likeAdded = true;
             }
         } else {
+            // 새 반응 추가
             ReviewReaction newReaction = ReviewReaction.builder()
                     .review(review)
                     .memberId(memberId)
                     .reactionType(type)
                     .build();
             reactionRepository.save(newReaction);
+            if ("LIKE".equals(type)) likeAdded = true;
         }
 
-        // 3. 좋아요 변경 시에도 실시간으로 숫자를 갱신해주고 싶다면 브로드캐스트 호출
-        sseEmitters.broadcast("review_update", "reactionChanged:" + reviewId);
+        // 3. 토글 후 현재 카운트 조회
+        long likeCount    = reactionRepository.countByReviewAndReactionType(review, "LIKE");
+        long dislikeCount = reactionRepository.countByReviewAndReactionType(review, "DISLIKE");
+
+        // 4. 카운트 실시간 동기화 (리뷰 작성자에게 SSE 전송)
+        Map<String, Object> payload = new HashMap<>();
+        payload.put("reviewId",     reviewId);
+        payload.put("likeCount",    likeCount);
+        payload.put("dislikeCount", dislikeCount);
+        sseEmitters.send(review.getMemberId(), payload);
+
+        // 5. LIKE가 추가된 경우에만 알림 생성 (DB 저장 + SSE 알림 패널)
+        if (likeAdded) {
+            Member receiver = memberRepository.findById(review.getMemberId())
+                    .orElse(null);
+            Member sender = memberRepository.findById(memberId)
+                    .orElse(null);
+            if (receiver != null && sender != null) {
+                notificationService.sendLikeAlert(receiver, sender, reviewId);
+            }
+        }
     }
 
     /**
@@ -100,5 +143,15 @@ public class ReviewService {
     public Double getAverageRating(Long restaurantId) {
         Double avg = reviewRepository.getAverageRating(restaurantId);
         return (avg != null) ? Math.round(avg * 10) / 10.0 : 0.0;
+    }
+
+    /**
+     * 5. 식당별 리뷰 목록 조회
+     */
+    public List<ReviewResponseDto> getReviews(Long restaurantId) {
+        return reviewRepository.findByRestaurantIdAndIsDeletedAndParentIsNullOrderByCreatedAtDesc(restaurantId, "N")
+                .stream()
+                .map(ReviewResponseDto::new)
+                .collect(Collectors.toList());
     }
 }
